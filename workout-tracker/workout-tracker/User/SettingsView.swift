@@ -1,54 +1,47 @@
-//
-//  SettingsView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 28/01/2025.
-//
-
 import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var newWeight: String = ""  // To store the new weight input
-    @EnvironmentObject var userViewModel: UserViewModel // Use UserViewModel to handle user data updates
-    
+    @EnvironmentObject var userViewModel: UserViewModel
+
     var body: some View {
-        List {
-            Section(header: Text("Account")) {
-                Text("User: \(authViewModel.user?.email ?? "Unknown")")
+        NavigationView {
+            List {
                 
-                // Input for changing weight
-                HStack {
-                    Text("Weight:")
-                    Spacer()
-                    TextField("Enter weight", text: $newWeight)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 150)
-                }
-                
-                Button("Update Weight") {
-                    // Validate weight input and call update function
-                    if let weight = Double(newWeight) {
-                        if let uid = authViewModel.user?.uid {
-                            userViewModel.updateUserWeight(uid: uid, newWeight: newWeight) { error in
-                                if let error = error {
-                                    print("Error updating weight: \(error.localizedDescription)")
-                                } else {
-                                    print("Weight updated successfully")
-                                }
-                            }
+                Section(header: Text("Body Metrics")) {
+                    NavigationLink(destination: EditWeightView()) {
+                        HStack {
+                            Text("Weight:")
+                            Spacer()
+                            Text(authViewModel.userData?["weight"] as? String ?? "")
+                                .foregroundColor(.gray)
                         }
-                    } else {
-                        print("Invalid weight input")
+                    }
+                    NavigationLink(destination: EditHeightView()) {
+                        HStack {
+                            Text("Height:")
+                            Spacer()
+                            Text(authViewModel.userData?["height"] as? String ?? "")
+                                .foregroundColor(.gray)
+                        }
                     }
                 }
                 
-                Button("Logout") {
-                    authViewModel.logout()
+                Section(header: Text("Account")) {
+                    HStack {
+                        Text("User:")
+                        Spacer()
+                        Text(authViewModel.userData?["email"] as? String ?? "")
+                            .foregroundColor(.gray)
+                    }
+                    
+
+                    Button("Logout") {
+                        authViewModel.logout()
+                    }.foregroundColor(.red)
                 }
             }
+            .navigationTitle("Settings")
         }
-        .navigationTitle("Settings")
     }
 }
