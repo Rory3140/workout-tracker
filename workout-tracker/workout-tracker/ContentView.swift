@@ -31,9 +31,10 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         
         let authViewModel = AuthViewModel()
-        authViewModel.isAuthenticated = false
+        authViewModel.isAuthenticated = true
         
         return ContentView()
             .environmentObject(authViewModel)
+            .environmentObject(UserViewModel())
     }
 }

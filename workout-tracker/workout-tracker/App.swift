@@ -22,11 +22,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct MyAuthApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var userViewModel = UserViewModel()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(authViewModel)
+                .environmentObject(userViewModel)
         }
     }
 }
