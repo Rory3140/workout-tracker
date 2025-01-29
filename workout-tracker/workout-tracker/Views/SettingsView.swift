@@ -13,7 +13,7 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section(header: Text("Account")) {
-                Text("User: ")
+                Text("User: \(authViewModel.user?.email ?? "Unknown")")
                 Button("Logout") {
                     authViewModel.logout()
                 }

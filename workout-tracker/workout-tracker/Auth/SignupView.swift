@@ -12,38 +12,34 @@ struct SignupView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
-    @State private var errorMessage: String? = nil
+    @State private var displayName: String = ""
 
     var body: some View {
         NavigationStack {
             List {
-                // Signup Section
                 Section(header: Text("Create an Account")) {
+                    TextField("Display Name", text: $displayName)
                     TextField("Email", text: $email)
                         .autocapitalization(.none)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
-
                     SecureField("Password", text: $password)
-                    
                     SecureField("Confirm Password", text: $confirmPassword)
                 }
 
-                // Error Message Section
-                if let errorMessage = errorMessage {
+                if let errorMessage = authViewModel.errorMessage {
                     Section {
                         Text(errorMessage)
                             .foregroundColor(.red)
                     }
                 }
 
-                // Action Section
                 Section {
                     Button(action: {
                         if password == confirmPassword {
-                            authViewModel.register(email: email, password: password)
+                            authViewModel.register(email: email, password: password, displayName: displayName)
                         } else {
-                            errorMessage = "Passwords do not match."
+                            authViewModel.errorMessage = "Passwords do not match."
                         }
                     }) {
                         HStack {
@@ -54,16 +50,10 @@ struct SignupView: View {
                         }
                     }
                     .listRowBackground(Color.green)
-                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty)
+                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || displayName.isEmpty)
                 }
             }
             .navigationTitle("Sign Up")
         }
-    }
-}
-
-struct SignupView_Previews: PreviewProvider {
-    static var previews: some View {
-        SignupView().environmentObject(AuthViewModel())
     }
 }
