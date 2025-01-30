@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 27/01/2025.
-//
-
 import SwiftUI
 
 struct ContentView: View {
@@ -31,7 +24,7 @@ struct ContentView: View {
                     
                     WorkoutView()
                         .tabItem {
-                            Image(systemName: "person.crop.circle")
+                            Image(systemName: "figure.run")
                             Text("Workout")
                         }
                         .tag(2)

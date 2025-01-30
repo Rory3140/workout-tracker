@@ -140,14 +140,6 @@ class AuthViewModel: ObservableObject {
                 return
             }
 
-            // Convert dictionary to JSON string
-            if let jsonData = try? JSONSerialization.data(withJSONObject: data, options: .prettyPrinted),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("User data updated (JSON):\n\(jsonString)")
-            } else {
-                print("Failed to convert user data to JSON")
-            }
-
             self?.userData = data
         }
     }

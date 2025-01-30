@@ -1,8 +1,10 @@
 import FirebaseFirestore
+import FirebaseStorage
 import Combine
 
 class UserViewModel: ObservableObject {
     private let db = Firestore.firestore()
+    private let storage = Storage.storage()
 
     @Published var selectedWeightUnit: String
     @Published var selectedHeightUnit: String
@@ -43,7 +45,6 @@ class UserViewModel: ObservableObject {
         return String(format: "%.0f", weightValue)
     }
 
-
     // Convert height to inches if needed
     func convertHeightToDisplay(height: String) -> String {
         guard let heightValue = Double(height) else { return height }
@@ -53,8 +54,6 @@ class UserViewModel: ObservableObject {
         }
         return String(format: "%.0f", heightValue)
     }
-
-
 
     // Update user weight (convert to kg before saving)
     func updateUserWeight(uid: String, newWeight: String, completion: @escaping (Error?) -> Void) {
@@ -83,4 +82,40 @@ class UserViewModel: ObservableObject {
         selectedHeightUnit = newUnit
         UserDefaults.standard.set(newUnit, forKey: "selectedHeightUnit") // Save to UserDefaults
     }
+    
+    // Function to upload profile picture to Firebase Storage
+        func uploadProfilePicture(uid: String, imageData: Data, completion: @escaping (Bool) -> Void) {
+            let storageRef = storage.reference().child("profile_pictures/\(uid).jpg")
+            storageRef.putData(imageData, metadata: nil) { _, error in
+                if let error = error {
+                    print("Error uploading image: \(error.localizedDescription)")
+                    completion(false)
+                    return
+                }
+
+                storageRef.downloadURL { url, error in
+                    if let error = error {
+                        print("Error fetching download URL: \(error.localizedDescription)")
+                        completion(false)
+                        return
+                    }
+
+                    if let url = url {
+                        self.updateProfilePhotoURL(uid: uid, photoURL: url.absoluteString)
+                        completion(true)
+                    }
+                }
+            }
+        }
+
+        // Function to update Firestore with new photo URL
+        func updateProfilePhotoURL(uid: String, photoURL: String) {
+            db.collection("user-data").document(uid).updateData([
+                "photoURL": photoURL
+            ]) { error in
+                if let error = error {
+                    print("Error updating photo URL: \(error.localizedDescription)")
+                }
+            }
+        }
 }
