@@ -1,10 +1,3 @@
-//
-//  EditWeightView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 29/01/2025.
-//
-
 import SwiftUI
 
 struct EditWeightView: View {
@@ -22,11 +15,15 @@ struct EditWeightView: View {
                 HStack {
                     Text("New Weight:")
                     Spacer()
-                    TextField("Enter weight", text: $newWeight)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 100)
+                    HStack {
+                        TextField("", text: $newWeight)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 90)
+                        Text(userViewModel.selectedWeightUnit)
+                            .foregroundColor(.gray)
+                    }
                 }
             }
 
@@ -58,7 +55,7 @@ struct EditWeightView: View {
             }
         }
         .onAppear {
-            newWeight = authViewModel.userData?["weight"] as? String ?? ""
+            newWeight = userViewModel.convertWeightToDisplay(weight: authViewModel.userData?["weight"] as? String ?? "")
         }
         .navigationTitle("Edit Weight")
         .alert(isPresented: $showAlert) {

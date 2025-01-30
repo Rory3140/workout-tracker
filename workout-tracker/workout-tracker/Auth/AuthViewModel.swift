@@ -106,7 +106,6 @@ class AuthViewModel: ObservableObject {
             "displayName": displayName,
             "email": email,
             "photoURL": "",
-            "lastLogin": "",
             "height": "",
             "weight": "",
             "workouts": [],

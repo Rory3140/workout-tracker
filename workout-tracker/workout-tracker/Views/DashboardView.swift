@@ -1,5 +1,5 @@
 //
-//  ProfileView.swift
+//  DashboardView.swift
 //  workout-tracker
 //
 //  Created by Rory Wood on 27/01/2025.
@@ -7,15 +7,16 @@
 
 import SwiftUI
 
-struct ProfileView: View {
+struct DashboardView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var userViewModel: UserViewModel
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
                 NavigationLink(destination: SettingsView()){
                     
-                    Text("Go to Settings")
+                    Text("Settings")
                         .font(.headline)
                         .foregroundColor(.blue)
                         .padding()
@@ -26,7 +27,7 @@ struct ProfileView: View {
                 }
             }
             .padding()
-            .navigationTitle("Profile")
+            .navigationTitle("Dashboard")
         }
     }
 }

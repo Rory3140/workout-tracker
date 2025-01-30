@@ -1,14 +1,21 @@
+//
+//  WorkoutView.swift
+//  workout-tracker
+//
+//  Created by Rory Wood on 29/01/2025.
+//
+
 import SwiftUI
 
-struct HomeView: View {
+struct WorkoutView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("Home Tab")
+                Text("Workout Tab")
                     .font(.title)
                     .padding()
             }
-            .navigationTitle("Home")
+            .navigationTitle("Workout")
         }
     }
 }
