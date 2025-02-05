@@ -11,35 +11,30 @@ struct ContentView: View {
                     DashboardView()
                         .tabItem {
                             Image(systemName: "house.fill")
-                            Text("Dashboard")
                         }
                         .tag(0)
                     
                     LogsView()
                         .tabItem {
                             Image(systemName: "square.and.arrow.up")
-                            Text("Logs")
                         }
                         .tag(1)
                     
                     WorkoutView()
                         .tabItem {
                             Image(systemName: "figure.run")
-                            Text("Workout")
                         }
                         .tag(2)
                     
                     ProgressView()
                         .tabItem {
                             Image(systemName: "chart.bar.xaxis")
-                            Text("Progress")
                         }
                         .tag(3)
                     
                     VaultView()
                         .tabItem {
                             Image(systemName: "lock")
-                            Text("Vault")
                         }
                         .tag(4)
                 }

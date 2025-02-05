@@ -22,24 +22,7 @@ struct WorkoutView: View {
             .navigationTitle("Workout")
             .sheet(isPresented: $showWorkoutSheet) {
                 WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .presentationDetents([.large, .medium], selection: .constant(.large))
             }
-        }
-    }
-}
-
-struct WorkoutBottomSheet: View {
-    @Binding var showWorkoutSheet: Bool
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            Button("Cancel Workout") {
-                showWorkoutSheet = false
-            }
-            .padding()
         }
     }
 }

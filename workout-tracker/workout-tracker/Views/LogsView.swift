@@ -1,10 +1,3 @@
-//
-//  LogsView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 29/01/2025.
-//
-
 import SwiftUI
 
 struct LogsView: View {
