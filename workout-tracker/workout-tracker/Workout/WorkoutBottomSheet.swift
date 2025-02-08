@@ -3,27 +3,8 @@ import SwiftUI
 struct WorkoutBottomSheet: View {
     @Binding var showWorkoutSheet: Bool
     
-    @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var userViewModel: UserViewModel
-    
-    @State private var workoutName: String = ""
-    @State private var startTime: Date = Date()
-    @State private var endTime: Date? = nil
-    @State private var workoutDescription: String = ""
-    
-    @State private var exercises: [Exercise] = []
-    
-    struct Set: Identifiable {
-        var id = UUID()
-        var weight: String
-        var reps: String
-    }
-    
-    struct Exercise: Identifiable {
-        var id = UUID()
-        var name: String
-        var sets: [Set]
-    }
+    @StateObject private var workoutViewModel = WorkoutViewModel()
     
     var body: some View {
         ZStack {
@@ -33,16 +14,16 @@ struct WorkoutBottomSheet: View {
             VStack {
                 List {
                     Section {
-                        TextField("Workout Name", text: $workoutName)
+                        TextField("Workout Name", text: $workoutViewModel.workoutName)
                             .keyboardType(.default)
                         
-                        DatePicker("Start Time", selection: $startTime, displayedComponents: [.date, .hourAndMinute])
+                        DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(CompactDatePickerStyle())
                         
-                        if let endTime = endTime {
+                        if let endTime = workoutViewModel.endTime {
                             DatePicker("End Time", selection: Binding(
                                 get: { endTime },
-                                set: { self.endTime = $0 }
+                                set: { workoutViewModel.endTime = $0 }
                             ), displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(CompactDatePickerStyle())
                         } else {
@@ -50,42 +31,42 @@ struct WorkoutBottomSheet: View {
                                 .foregroundColor(.gray)
                         }
                         
-                        TextField("Workout Description", text: $workoutDescription)
+                        TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                             .keyboardType(.default)
                     }
                     
-                    ForEach(exercises.indices, id: \.self) { index in
+                    ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
                         Section {
-                            TextField("Exercise Name", text: $exercises[index].name)
+                            TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
                                 .keyboardType(.default)
                             
-                            ForEach(exercises[index].sets.indices, id: \.self) { setIndex in
+                            ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
                                 HStack {
                                     Text("Set \(setIndex + 1)")
                                         .font(.subheadline)
                                         .frame(width: 60, alignment: .leading)
                                     
-                                    TextField("Weight", text: $exercises[index].sets[setIndex].weight)
+                                    TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
                                         .keyboardType(.decimalPad)
                                         .frame(width: 60)
                                     
                                     Text(userViewModel.selectedWeightUnit)
                                         .frame(width: 60, alignment: .leading)
                                     
-                                    TextField("Reps", text: $exercises[index].sets[setIndex].reps)
+                                    TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
                                         .keyboardType(.numberPad)
                                         .frame(width: 100)
                                 }
                                 .padding(.horizontal)
                             }
                             .onDelete { indexSet in
-                                exercises[index].sets.remove(atOffsets: indexSet)
+                                workoutViewModel.exercises[index].sets.remove(atOffsets: indexSet)
                             }
                             
                             HStack {
                                 Button(action: {
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        exercises[index].sets.append(Set(weight: "", reps: ""))
+                                        workoutViewModel.exercises[index].sets.append(WorkoutViewModel.Set(weight: "", reps: ""))
                                     }
                                 }) {
                                     Text("Add Set")
@@ -101,7 +82,7 @@ struct WorkoutBottomSheet: View {
                                 
                                 Menu {
                                     Button(role: .destructive) {
-                                        exercises.remove(at: index)
+                                        workoutViewModel.exercises.remove(at: index)
                                     } label: {
                                         Label("Delete Exercise", systemImage: "trash")
                                     }
@@ -119,7 +100,7 @@ struct WorkoutBottomSheet: View {
                         Spacer()
                         Button(action: {
                             withAnimation(.spring()) {
-                                exercises.append(Exercise(name: "", sets: [Set(weight: "", reps: "")]))
+                                workoutViewModel.exercises.append(WorkoutViewModel.Exercise(name: "", sets: [WorkoutViewModel.Set(weight: "", reps: "")]))
                             }
                         }) {
                             Text("Add Exercise")
@@ -135,7 +116,9 @@ struct WorkoutBottomSheet: View {
                 .padding(.vertical)
                 
                 Button(action: {
-                    endTime = Date()
+                    workoutViewModel.endTime = Date()
+                    workoutViewModel.saveWorkout()
+                    showWorkoutSheet = false
                 }) {
                     Text("Finish Workout")
                         .foregroundColor(.green)
