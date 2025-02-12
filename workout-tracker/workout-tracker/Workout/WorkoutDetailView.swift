@@ -2,7 +2,8 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
     let workout: WorkoutViewModel.Workout
-    
+    @ObservedObject var userViewModel: UserViewModel
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
@@ -33,8 +34,11 @@ struct WorkoutDetailView: View {
                             .font(.headline)
                         
                         ForEach(exercise.sets) { set in
+                            let convertedWeight = userViewModel.convertWeightToDisplay(weight: set.weight)
+                            let weightUnit = userViewModel.selectedWeightUnit
+                            
                             HStack {
-                                Text("Weight: \(set.weight) lbs")
+                                Text("Weight: \(convertedWeight) \(weightUnit)")
                                 Spacer()
                                 Text("Reps: \(set.reps)")
                             }

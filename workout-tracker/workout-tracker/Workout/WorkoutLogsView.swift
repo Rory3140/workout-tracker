@@ -2,7 +2,8 @@ import SwiftUI
 
 struct WorkoutLogsView: View {
     @StateObject var workoutViewModel = WorkoutViewModel()
-    
+    @StateObject var userViewModel = UserViewModel()
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -11,7 +12,7 @@ struct WorkoutLogsView: View {
                 
                 List {
                     ForEach(workoutViewModel.userWorkouts) { workout in
-                        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                        NavigationLink(destination: WorkoutDetailView(workout: workout, userViewModel: userViewModel)) {
                             VStack(alignment: .leading) {
                                 Text(workout.name)
                                     .font(.headline)

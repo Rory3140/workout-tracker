@@ -17,7 +17,6 @@ class AuthViewModel: ObservableObject {
 
         // Set up listener if the user is already logged in
         if let user = user {
-            print("User already logged in: \(user.email ?? "")")
             addUserDataListener(for: user.uid)
         }
     }

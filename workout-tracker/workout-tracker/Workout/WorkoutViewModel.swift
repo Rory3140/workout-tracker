@@ -11,6 +11,9 @@ class WorkoutViewModel: ObservableObject {
     @Published var workoutDescription: String = ""
     @Published var exercises: [Exercise] = []
     
+    // Add reference to UserViewModel for unit conversion
+    private var userViewModel = UserViewModel()
+    
     struct Set: Identifiable, Codable {
         var id = UUID()
         var weight: String
@@ -52,7 +55,17 @@ class WorkoutViewModel: ObservableObject {
         let workoutId = UUID().uuidString
         let calculatedDuration = endTime != nil ? Calendar.current.dateComponents([.minute], from: startTime, to: endTime!).minute ?? 0 : nil
 
-        
+        // Convert weight in all exercises and sets if necessary
+        for exerciseIndex in exercises.indices {
+            for setIndex in exercises[exerciseIndex].sets.indices {
+                // Convert weight to kg if user selected lbs
+                if userViewModel.selectedWeightUnit == "lbs" {
+                    let convertedWeight = userViewModel.convertWeightToKg(weight: exercises[exerciseIndex].sets[setIndex].weight)
+                    exercises[exerciseIndex].sets[setIndex].weight = convertedWeight
+                }
+            }
+        }
+
         let newWorkout = Workout(
             id: workoutId,
             name: workoutName,

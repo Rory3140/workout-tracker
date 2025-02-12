@@ -3,12 +3,17 @@ import SwiftUI
 struct VaultView: View {
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("Exercise Valut Tab")
-                    .font(.title)
-                    .padding()
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 20) {
+                    Text("Exercise Valut Tab")
+                        .font(.title)
+                        .padding()
+                }
+                .navigationTitle("Exercise Valut")
             }
-            .navigationTitle("Exercise Valut")
         }
     }
 }
