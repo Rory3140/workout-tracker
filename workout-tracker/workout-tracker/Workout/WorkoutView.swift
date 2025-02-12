@@ -5,23 +5,28 @@ struct WorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Button(action: {
-                    showWorkoutSheet.toggle()
-                }) {
-                    Text("Start Workout")
-                        .font(.headline)
-                        .foregroundColor(.blue)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.blue, lineWidth: 2)
-                        )
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 20) {
+                    Button(action: {
+                        showWorkoutSheet.toggle()
+                    }) {
+                        Text("Start Workout")
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.blue, lineWidth: 2)
+                            )
+                    }
                 }
-            }
-            .navigationTitle("Workout")
-            .sheet(isPresented: $showWorkoutSheet) {
-                WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet)
+                .navigationTitle("Workout")
+                .sheet(isPresented: $showWorkoutSheet) {
+                    WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet)
+                }
             }
         }
     }

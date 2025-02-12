@@ -14,7 +14,7 @@ struct ContentView: View {
                         }
                         .tag(0)
                     
-                    LogsView()
+                    WorkoutLogsView()
                         .tabItem {
                             Image(systemName: "square.and.arrow.up")
                         }

@@ -1,10 +1,3 @@
-//
-//  AuthViewModel.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 27/01/2025.
-//
-
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore

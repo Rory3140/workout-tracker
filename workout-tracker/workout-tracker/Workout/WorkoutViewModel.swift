@@ -3,6 +3,8 @@ import FirebaseFirestore
 import FirebaseAuth
 
 class WorkoutViewModel: ObservableObject {
+    @Published var userWorkouts: [Workout] = []
+    
     @Published var workoutName: String = ""
     @Published var startTime: Date = Date()
     @Published var endTime: Date? = nil
@@ -21,15 +23,17 @@ class WorkoutViewModel: ObservableObject {
         var sets: [Set]
     }
     
-    struct Workout: Codable {
+    struct Workout: Identifiable, Codable {
         var id: String
         var name: String
         var startTime: Date
         var endTime: Date?
+        var duration: Int?
         var description: String
         var exercises: [Exercise]
         var createdBy: String
     }
+
     
     private let db = Firestore.firestore()
     
@@ -45,12 +49,16 @@ class WorkoutViewModel: ObservableObject {
             return
         }
         
-        let workoutId = UUID().uuidString // Use this as the document ID
+        let workoutId = UUID().uuidString
+        let calculatedDuration = endTime != nil ? Calendar.current.dateComponents([.minute], from: startTime, to: endTime!).minute ?? 0 : nil
+
+        
         let newWorkout = Workout(
             id: workoutId,
             name: workoutName,
             startTime: startTime,
             endTime: endTime,
+            duration: calculatedDuration,
             description: workoutDescription,
             exercises: exercises,
             createdBy: userId
@@ -97,4 +105,97 @@ class WorkoutViewModel: ObservableObject {
         workoutDescription = ""
         exercises = []
     }
+    
+    /// Fetches all workouts associated with the logged-in user, ordered by start date
+    func fetchUserWorkouts() {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("Error: No authenticated user found")
+            return
+        }
+        
+        let userRef = db.collection("user-data").document(userId)
+        
+        userRef.getDocument { document, error in
+            if let error = error {
+                print("Error fetching user data: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = document?.data(),
+                  let workoutIds = data["workouts"] as? [String] else {
+                print("No workouts found for user.")
+                return
+            }
+            
+            self.userWorkouts.removeAll() // Clear existing workouts
+            
+            let group = DispatchGroup()
+            
+            for workoutId in workoutIds {
+                group.enter()
+                self.db.collection("workouts").document(workoutId).getDocument { workoutDoc, workoutError in
+                    if let workoutError = workoutError {
+                        print("Error fetching workout \(workoutId): \(workoutError.localizedDescription)")
+                        group.leave()
+                        return
+                    }
+                    
+                    if let workoutData = workoutDoc?.data() {
+                        do {
+                            let workout = try Firestore.Decoder().decode(Workout.self, from: workoutData)
+                            DispatchQueue.main.async {
+                                self.userWorkouts.append(workout)
+                            }
+                        } catch {
+                            print("Error decoding workout \(workoutId): \(error.localizedDescription)")
+                        }
+                    }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                self.userWorkouts.sort { $0.startTime > $1.startTime }
+                print("Fetched and sorted user workouts successfully")
+            }
+        }
+    }
+    
+    /// Deletes a workout from Firestore and removes its reference from the user's workout list
+    func deleteWorkout(workoutId: String) {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("Error: No authenticated user found")
+            return
+        }
+        
+        let workoutRef = db.collection("workouts").document(workoutId)
+        let userRef = db.collection("user-data").document(userId)
+        
+        // Remove the workout from the global "workouts" collection
+        workoutRef.delete { error in
+            if let error = error {
+                print("Error deleting workout: \(error.localizedDescription)")
+                return
+            }
+            
+            print("Workout successfully deleted")
+            
+            // Remove the workout ID from the user's "workouts" array
+            userRef.updateData([
+                "workouts": FieldValue.arrayRemove([workoutId])
+            ]) { error in
+                if let error = error {
+                    print("Error removing workout ID from user: \(error.localizedDescription)")
+                } else {
+                    print("Workout ID successfully removed from user's workout list")
+                    
+                    // Remove the workout from local state
+                    DispatchQueue.main.async {
+                        self.userWorkouts.removeAll { $0.id == workoutId }
+                    }
+                }
+            }
+        }
+    }
+
 }
