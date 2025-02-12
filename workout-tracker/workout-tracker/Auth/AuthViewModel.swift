@@ -41,7 +41,7 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func register(email: String, password: String, displayName: String) {
+    func register(email: String, password: String, firstName: String, lastName: String) {
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error as NSError? {
                 self?.handleAuthError(error)
@@ -51,7 +51,7 @@ class AuthViewModel: ObservableObject {
             // Successful registration
             guard let user = authResult?.user else { return }
 
-            // Update user profile with displayName
+            let displayName = "\(firstName) \(lastName)"
             let changeRequest = user.createProfileChangeRequest()
             changeRequest.displayName = displayName
             changeRequest.commitChanges { [weak self] error in
@@ -61,8 +61,7 @@ class AuthViewModel: ObservableObject {
                     return
                 }
 
-                // Create Firestore user document
-                self?.createFirestoreUserDocument(uid: user.uid, email: email, displayName: displayName)
+                self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName)
             }
 
             self?.user = user
@@ -93,9 +92,11 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    private func createFirestoreUserDocument(uid: String, email: String, displayName: String) {
+    private func createFirestoreUserDocument(uid: String, email: String, firstName: String, lastName: String) {
         let userData: [String: Any] = [
-            "displayName": displayName,
+            "firstName": firstName,
+            "lastName": lastName,
+            "displayName": "\(firstName) \(lastName)",
             "email": email,
             "photoURL": "",
             "height": "",
@@ -135,7 +136,6 @@ class AuthViewModel: ObservableObject {
             self?.userData = data
         }
     }
-
 
     private func removeUserDataListener() {
         listener?.remove()

@@ -1,10 +1,3 @@
-//
-//  SignupView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 27/01/2025.
-//
-
 import SwiftUI
 
 struct SignupView: View {
@@ -12,13 +5,15 @@ struct SignupView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
-    @State private var displayName: String = ""
+    @State private var firstName: String = ""
+    @State private var lastName: String = ""
 
     var body: some View {
         NavigationStack {
             List {
                 Section(header: Text("Create an Account")) {
-                    TextField("Display Name", text: $displayName)
+                    TextField("First Name", text: $firstName)
+                    TextField("Last Name", text: $lastName)
                     TextField("Email", text: $email)
                         .autocapitalization(.none)
                         .textInputAutocapitalization(.never)
@@ -37,7 +32,7 @@ struct SignupView: View {
                 Section {
                     Button(action: {
                         if password == confirmPassword {
-                            authViewModel.register(email: email, password: password, displayName: displayName)
+                            authViewModel.register(email: email, password: password, firstName: firstName, lastName: lastName)
                         } else {
                             authViewModel.errorMessage = "Passwords do not match."
                         }
@@ -49,8 +44,8 @@ struct SignupView: View {
                             Spacer()
                         }
                     }
-                    .listRowBackground(Color.green)
-                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || displayName.isEmpty)
+                    .listRowBackground(Color.blue)
+                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || firstName.isEmpty || lastName.isEmpty)
                 }
             }
             .navigationTitle("Sign Up")
