@@ -4,12 +4,39 @@ struct WorkoutBottomSheet: View {
     @Binding var showWorkoutSheet: Bool
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @EnvironmentObject var userViewModel: UserViewModel
-    
+
     @State private var showCancelAlert = false
     @State private var showFinishAlert = false
     @State private var showDeleteAlert = false
     @State private var exerciseToDeleteIndex: Int?
-        
+
+    // Define focusable fields
+    enum Field: Hashable {
+        case workoutName
+        case workoutDescription
+        case exerciseName(Int)            // Exercise index
+        case setWeight(exercise: Int, set: Int)
+        case setReps(exercise: Int, set: Int)
+    }
+    
+    // Currently focused field
+    @FocusState private var focusedField: Field?
+
+    // Returns an ordered list of all focusable fields.
+    private func getFocusableFields() -> [Field] {
+        var fields: [Field] = []
+        fields.append(.workoutName)
+        fields.append(.workoutDescription)
+        for exerciseIndex in workoutViewModel.exercises.indices {
+            fields.append(.exerciseName(exerciseIndex))
+            for setIndex in workoutViewModel.exercises[exerciseIndex].sets.indices {
+                fields.append(.setWeight(exercise: exerciseIndex, set: setIndex))
+                fields.append(.setReps(exercise: exerciseIndex, set: setIndex))
+            }
+        }
+        return fields
+    }
+    
     var body: some View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
@@ -49,6 +76,7 @@ struct WorkoutBottomSheet: View {
                     Section {
                         TextField("Workout Name", text: $workoutViewModel.workoutName)
                             .keyboardType(.default)
+                            .focused($focusedField, equals: .workoutName)
                         
                         DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(CompactDatePickerStyle())
@@ -66,12 +94,14 @@ struct WorkoutBottomSheet: View {
                         
                         TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                             .keyboardType(.default)
+                            .focused($focusedField, equals: .workoutDescription)
                     }
                     
                     ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
                         Section {
                             TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
                                 .keyboardType(.default)
+                                .focused($focusedField, equals: .exerciseName(index))
                             
                             ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
                                 HStack {
@@ -82,6 +112,7 @@ struct WorkoutBottomSheet: View {
                                     TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
                                         .keyboardType(.decimalPad)
                                         .frame(width: 60)
+                                        .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
                                     
                                     Text(userViewModel.selectedWeightUnit)
                                         .frame(width: 60, alignment: .leading)
@@ -89,6 +120,7 @@ struct WorkoutBottomSheet: View {
                                     TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
                                         .keyboardType(.numberPad)
                                         .frame(width: 100)
+                                        .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
                                     
                                 }
                                 .padding(.horizontal)
@@ -135,7 +167,9 @@ struct WorkoutBottomSheet: View {
                         Spacer()
                         Button(action: {
                             withAnimation(.spring()) {
-                                workoutViewModel.exercises.append(WorkoutViewModel.Exercise(name: "", sets: [WorkoutViewModel.Set(weight: "", reps: "")]))
+                                workoutViewModel.exercises.append(
+                                    WorkoutViewModel.Exercise(name: "", sets: [WorkoutViewModel.Set(weight: "", reps: "")])
+                                )
                             }
                         }) {
                             Text("Add Exercise")
@@ -156,9 +190,41 @@ struct WorkoutBottomSheet: View {
         .presentationDetents([.large])
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
+                // Move to previous text field
+                Button(action: {
+                    let fields = getFocusableFields()
+                    if let current = focusedField,
+                       let currentIndex = fields.firstIndex(of: current),
+                       currentIndex > 0 {
+                        focusedField = fields[currentIndex - 1]
+                    } else {
+                        // Wrap around to the last field
+                        focusedField = fields.last
+                    }
+                }) {
+                    Image(systemName: "chevron.left")
+                }
+                
+                // Move to next text field
+                Button(action: {
+                    let fields = getFocusableFields()
+                    if let current = focusedField,
+                       let currentIndex = fields.firstIndex(of: current),
+                       currentIndex < fields.count - 1 {
+                        focusedField = fields[currentIndex + 1]
+                    } else {
+                        // Wrap around to the first field
+                        focusedField = fields.first
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                }
                 Spacer()
-                Button("Done") {
+                Button(action: {
+                    // Dismiss the keyboard
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }) {
+                    Image(systemName: "keyboard.chevron.compact.down")
                 }
             }
         }
@@ -173,15 +239,13 @@ struct WorkoutBottomSheet: View {
         }
         
         // Finish Workout Confirmation
-        .alert("Are you sure you want to finish?", isPresented: $showFinishAlert) {
+        .alert("Are you sure you want to finish the workout?", isPresented: $showFinishAlert) {
             Button("Yes", role: .destructive) {
                 workoutViewModel.endTime = Date()
                 workoutViewModel.saveWorkout()
                 showWorkoutSheet = false
-            }.foregroundColor(Color.blue)
-            
+            }
             Button("No", role: .cancel) { }
-            .foregroundColor(Color.red)
         }
         
         // Delete Exercise Confirmation

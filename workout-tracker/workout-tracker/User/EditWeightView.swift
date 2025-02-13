@@ -7,7 +7,7 @@ struct EditWeightView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
 
-    @Environment(\.presentationMode) var presentationMode  // Allows dismissing the view
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
@@ -42,7 +42,7 @@ struct EditWeightView: View {
                                 showAlert = true
                             } else {
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    presentationMode.wrappedValue.dismiss() // Go back to SettingsView
+                                    dismiss()
                                 }
                             }
                         }
