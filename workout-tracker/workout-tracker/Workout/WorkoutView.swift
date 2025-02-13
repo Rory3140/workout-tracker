@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutView: View {
     @State private var showWorkoutSheet = false
+    @StateObject private var workoutViewModel = WorkoutViewModel() // Shared instance
 
     var body: some View {
         NavigationStack {
@@ -13,7 +14,10 @@ struct WorkoutView: View {
                     Button(action: {
                         showWorkoutSheet.toggle()
                     }) {
-                        Text("Start Workout")
+                        // If no workout data has been entered, show "Start Workout"; otherwise, "Resume Workout"
+                        Text((workoutViewModel.workoutName.isEmpty &&
+                              workoutViewModel.workoutDescription.isEmpty &&
+                              workoutViewModel.exercises.isEmpty) ? "Start Workout" : "Resume Workout")
                             .font(.headline)
                             .foregroundColor(.blue)
                             .padding()
@@ -25,7 +29,8 @@ struct WorkoutView: View {
                 }
                 .navigationTitle("Workout")
                 .sheet(isPresented: $showWorkoutSheet) {
-                    WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet)
+                    // Pass the shared workoutViewModel to preserve entered data
+                    WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet, workoutViewModel: workoutViewModel)
                 }
             }
         }
