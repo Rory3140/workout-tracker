@@ -1,6 +1,7 @@
 import SwiftUI
 
-struct SettingsView: View { @ObservedObject var authViewModel: AuthViewModel
+struct SettingsView: View {
+    @ObservedObject var authViewModel: AuthViewModel
     @ObservedObject var userViewModel: UserViewModel
     
     @Environment(\.dismiss) private var dismiss
