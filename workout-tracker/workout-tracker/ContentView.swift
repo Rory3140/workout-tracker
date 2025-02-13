@@ -2,7 +2,10 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @StateObject private var workoutViewModel = WorkoutViewModel()
     @State private var selectedTab = 0
+    @State private var showWorkoutSheet = false
     
     var body: some View {
         Group {
@@ -16,7 +19,7 @@ struct ContentView: View {
                         .tabItem { Image(systemName: "square.and.arrow.up") }
                         .tag(1)
                     
-                    WorkoutView()
+                    WorkoutView(showWorkoutSheet: $showWorkoutSheet, workoutViewModel: workoutViewModel)
                         .tabItem { Image(systemName: "figure.run") }
                         .tag(2)
                     
@@ -27,6 +30,14 @@ struct ContentView: View {
                     VaultView()
                         .tabItem { Image(systemName: "lock") }
                         .tag(4)
+                }
+                .sheet(isPresented: $showWorkoutSheet) {
+//                    NavigationStack {
+                        WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet,
+                                           workoutViewModel: workoutViewModel)
+                            .navigationTitle("Workout Details")
+                            .navigationBarTitleDisplayMode(.inline)
+//                    }
                 }
             } else {
                 LoginView()

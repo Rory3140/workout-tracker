@@ -9,9 +9,7 @@ struct WorkoutBottomSheet: View {
     @State private var showFinishAlert = false
     @State private var showDeleteAlert = false
     @State private var exerciseToDeleteIndex: Int?
-    
-    @FocusState var isInputActive: Bool
-    
+        
     var body: some View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
@@ -51,7 +49,6 @@ struct WorkoutBottomSheet: View {
                     Section {
                         TextField("Workout Name", text: $workoutViewModel.workoutName)
                             .keyboardType(.default)
-                            .focused($isInputActive)
                         
                         DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(CompactDatePickerStyle())
@@ -69,14 +66,12 @@ struct WorkoutBottomSheet: View {
                         
                         TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                             .keyboardType(.default)
-                            .focused($isInputActive)
                     }
                     
                     ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
                         Section {
                             TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
                                 .keyboardType(.default)
-                                .focused($isInputActive)
                             
                             ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
                                 HStack {
@@ -86,7 +81,6 @@ struct WorkoutBottomSheet: View {
                                     
                                     TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
                                         .keyboardType(.decimalPad)
-                                        .focused($isInputActive)
                                         .frame(width: 60)
                                     
                                     Text(userViewModel.selectedWeightUnit)
@@ -94,7 +88,6 @@ struct WorkoutBottomSheet: View {
                                     
                                     TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
                                         .keyboardType(.numberPad)
-                                        .focused($isInputActive)
                                         .frame(width: 100)
                                     
                                 }
@@ -165,7 +158,7 @@ struct WorkoutBottomSheet: View {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") {
-                    isInputActive = false
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
             }
         }

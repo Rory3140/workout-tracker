@@ -6,7 +6,7 @@ struct LoginView: View {
     @State private var password: String = ""
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 // Login Section
                 Section(header: Text("Login Information")) {

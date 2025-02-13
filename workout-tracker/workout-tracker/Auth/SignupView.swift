@@ -10,7 +10,7 @@ struct SignupView: View {
     @State private var lastName: String = ""
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 Section(header: Text("Create an Account")) {
                     TextField("First Name", text: $firstName)

@@ -15,7 +15,7 @@ struct MyAuthApp: App {
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var userViewModel = UserViewModel()
     @StateObject private var workoutViewModel = WorkoutViewModel()
-
+    
     var body: some Scene {
         WindowGroup {
             NavigationStack {
