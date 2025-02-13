@@ -173,6 +173,7 @@ struct WorkoutBottomSheet: View {
         // Cancel Workout Confirmation
         .alert("Are you sure you want to cancel the workout?", isPresented: $showCancelAlert) {
             Button("Yes", role: .destructive) {
+                workoutViewModel.resetWorkout()
                 showWorkoutSheet = false
             }
             Button("No", role: .cancel) { }

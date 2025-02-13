@@ -110,8 +110,8 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Resets the workout form after saving
-    private func resetWorkout() {
+    /// Resets the workout form after saving or cancellation
+    func resetWorkout() {
         workoutName = ""
         startTime = Date()
         endTime = nil
