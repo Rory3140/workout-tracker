@@ -1,9 +1,29 @@
 import SwiftUI
 
-struct WorkoutLogsView: View {
-    @StateObject var workoutViewModel = WorkoutViewModel()
-    @StateObject var userViewModel = UserViewModel()
+typealias Workout = WorkoutViewModel.Workout
 
+struct WorkoutLogsView: View {
+    @EnvironmentObject var workoutViewModel: WorkoutViewModel
+    @EnvironmentObject var userViewModel: UserViewModel
+    
+    /// Groups workouts by month/year and sorts them by date descending.
+    private var groupedWorkouts: [(key: String, workouts: [Workout], date: Date)] {
+        let grouped = Dictionary(grouping: workoutViewModel.userWorkouts) { workout -> DateComponents in
+            Calendar.current.dateComponents([.year, .month], from: workout.startTime)
+        }
+        var result: [(key: String, workouts: [Workout], date: Date)] = []
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        for (components, workouts) in grouped {
+            if let date = Calendar.current.date(from: components) {
+                let key = formatter.string(from: date)
+                result.append((key, workouts, date))
+            }
+        }
+        result.sort { $0.date > $1.date }
+        return result
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -11,43 +31,64 @@ struct WorkoutLogsView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 List {
-                    ForEach(workoutViewModel.userWorkouts) { workout in
-                        NavigationLink(destination: WorkoutDetailView(workout: workout, userViewModel: userViewModel)) {
-                            VStack(alignment: .leading) {
-                                Text(workout.name)
-                                    .font(.headline)
-                                
-                                Text("Start: \(workout.startTime.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                if let endTime = workout.endTime {
-                                    Text("End: \(endTime.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
+                    ForEach(groupedWorkouts, id: \.key) { group in
+                        Section(header: Text("\(group.key) - \(group.workouts.count) Workouts")
+                                    .font(.headline)) {
+                            ForEach(group.workouts) { workout in
+                                NavigationLink(
+                                    destination: WorkoutDetailView(workout: workout, userViewModel: userViewModel)
+                                ) {
+                                    HStack {
+                                        // Left Column: Day of week above day number
+                                        VStack {
+                                            Text(workout.startTime, format: Date.FormatStyle().weekday(.abbreviated))
+                                                .font(.subheadline)
+                                                .foregroundColor(.blue)
+                                            Text(workout.startTime, format: Date.FormatStyle().day())
+                                                .font(.headline)
+                                        }
+                                        .frame(width: 50)
+                                        
+                                        // Middle Column: Workout name above creator handle
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(workout.name)
+                                                .font(.headline)
+                                            if !workout.createdBy.isEmpty {
+                                                Text("@\(workout.createdBy)")
+                                                    .font(.footnote)
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        .padding(.leading, 8)
+                                        
+                                        Spacer()
+                                        
+                                        // Right Column: Duration (if available)
+                                        if let duration = workout.duration {
+                                            Text("\(duration) min")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
                                 }
-                                
-                                Text(workout.description)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 4)
+                            .onDelete { offsets in
+                                deleteWorkout(in: group.workouts, at: offsets)
+                            }
                         }
                     }
-                    .onDelete(perform: deleteWorkout)
                 }
                 .navigationTitle("Workout Logs")
-                .onAppear {
-                    workoutViewModel.fetchUserWorkouts()
-                }
+                // No need for onAppear fetch—the listener keeps the data current.
             }
         }
     }
     
-    /// Handles deletion of a workout
-    private func deleteWorkout(at offsets: IndexSet) {
+    /// Deletes the selected workout(s) from a given group.
+    private func deleteWorkout(in workouts: [Workout], at offsets: IndexSet) {
         for index in offsets {
-            let workout = workoutViewModel.userWorkouts[index]
+            let workout = workouts[index]
             workoutViewModel.deleteWorkout(workoutId: workout.id)
         }
     }

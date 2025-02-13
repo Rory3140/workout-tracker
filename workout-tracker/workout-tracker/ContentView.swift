@@ -9,33 +9,23 @@ struct ContentView: View {
             if authViewModel.isAuthenticated {
                 TabView(selection: $selectedTab) {
                     DashboardView()
-                        .tabItem {
-                            Image(systemName: "house.fill")
-                        }
+                        .tabItem { Image(systemName: "house.fill") }
                         .tag(0)
                     
                     WorkoutLogsView()
-                        .tabItem {
-                            Image(systemName: "square.and.arrow.up")
-                        }
+                        .tabItem { Image(systemName: "square.and.arrow.up") }
                         .tag(1)
                     
                     WorkoutView()
-                        .tabItem {
-                            Image(systemName: "figure.run")
-                        }
+                        .tabItem { Image(systemName: "figure.run") }
                         .tag(2)
                     
                     ProgressView()
-                        .tabItem {
-                            Image(systemName: "chart.bar.xaxis")
-                        }
+                        .tabItem { Image(systemName: "chart.bar.xaxis") }
                         .tag(3)
                     
                     VaultView()
-                        .tabItem {
-                            Image(systemName: "lock")
-                        }
+                        .tabItem { Image(systemName: "lock") }
                         .tag(4)
                 }
             } else {
@@ -47,20 +37,14 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        
-        // Mock or initialize UserViewModel with some state if needed
         let authViewModel = AuthViewModel()
         authViewModel.isAuthenticated = true
-
-        // Initialize UserViewModel and set its preferences, if needed
         let userViewModel = UserViewModel()
-
-//        // Optionally set mock data for UserDefaults or use default values
-//        UserDefaults.standard.set("kg", forKey: "selectedWeightUnit") // Set default weight unit
-//        UserDefaults.standard.set("cm", forKey: "selectedHeightUnit") // Set default height unit
-
+        let workoutViewModel = WorkoutViewModel()
+        
         return ContentView()
             .environmentObject(authViewModel)
             .environmentObject(userViewModel)
+            .environmentObject(workoutViewModel)
     }
 }
