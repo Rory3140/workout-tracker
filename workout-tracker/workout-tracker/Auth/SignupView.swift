@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct SignupView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
+    @ObservedObject var authViewModel: AuthViewModel
+    
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""

@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct EditWeightView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var userViewModel: UserViewModel
+    @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var userViewModel: UserViewModel
     @State private var newWeight: String = ""
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""

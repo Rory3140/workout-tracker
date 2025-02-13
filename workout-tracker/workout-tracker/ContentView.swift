@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab = 0
-
+    
     var body: some View {
         Group {
             if authViewModel.isAuthenticated {
@@ -42,9 +42,11 @@ struct ContentView_Previews: PreviewProvider {
         let userViewModel = UserViewModel()
         let workoutViewModel = WorkoutViewModel()
         
-        return ContentView()
-            .environmentObject(authViewModel)
-            .environmentObject(userViewModel)
-            .environmentObject(workoutViewModel)
+        return NavigationStack {
+            ContentView()
+                .environmentObject(authViewModel)
+                .environmentObject(userViewModel)
+                .environmentObject(workoutViewModel)
+        }
     }
 }

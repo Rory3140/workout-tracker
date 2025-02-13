@@ -1,10 +1,3 @@
-//
-//  LoginView.swift
-//  workout-tracker
-//
-//  Created by Rory Wood on 27/01/2025.
-//
-
 import SwiftUI
 
 struct LoginView: View {
@@ -43,7 +36,9 @@ struct LoginView: View {
 
                 // Signup Navigation Link
                 Section {
-                    NavigationLink(destination: SignupView()) {
+                    NavigationLink(destination: SignupView(
+                        authViewModel: authViewModel)
+                    ) {
                         Text("Don't have an account? Sign Up")
                             .foregroundColor(.blue)
                     }
@@ -51,11 +46,5 @@ struct LoginView: View {
             }
             .navigationTitle("Login")
         }
-    }
-}
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView().environmentObject(AuthViewModel())
     }
 }

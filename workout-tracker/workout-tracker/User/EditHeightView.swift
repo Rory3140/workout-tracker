@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct EditHeightView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var userViewModel: UserViewModel
+    @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var userViewModel: UserViewModel
     @State private var newHeight: String = ""
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""

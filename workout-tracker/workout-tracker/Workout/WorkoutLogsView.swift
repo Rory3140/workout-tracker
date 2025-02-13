@@ -13,7 +13,7 @@ struct WorkoutLogsView: View {
         }
         var result: [(key: String, workouts: [Workout], date: Date)] = []
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        formatter.dateFormat = "MMMM yyyy" // e.g. "January 2025"
         for (components, workouts) in grouped {
             if let date = Calendar.current.date(from: components) {
                 let key = formatter.string(from: date)
@@ -80,7 +80,12 @@ struct WorkoutLogsView: View {
                     }
                 }
                 .navigationTitle("Workout Logs")
-                // No need for onAppear fetch—the listener keeps the data current.
+                .onAppear {
+                    // Only fetch if not already loaded.
+                    if workoutViewModel.userWorkouts.isEmpty {
+                        workoutViewModel.fetchUserWorkouts()
+                    }
+                }
             }
         }
     }

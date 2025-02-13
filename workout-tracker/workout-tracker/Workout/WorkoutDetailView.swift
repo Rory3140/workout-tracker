@@ -3,7 +3,7 @@ import SwiftUI
 struct WorkoutDetailView: View {
     let workout: WorkoutViewModel.Workout
     @ObservedObject var userViewModel: UserViewModel
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
