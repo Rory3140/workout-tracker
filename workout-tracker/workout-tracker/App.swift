@@ -26,9 +26,11 @@ struct MyAuthApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(authViewModel)
-                .environmentObject(userViewModel)
+            NavigationStack {
+                ContentView()
+                    .environmentObject(authViewModel)
+                    .environmentObject(userViewModel)
+            }
         }
     }
 }

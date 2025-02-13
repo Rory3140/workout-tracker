@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct ProgressView: View {
+    
+    @FocusState var isInputActive: Bool
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -11,6 +14,7 @@ struct ProgressView: View {
                     Text("Progress Tab")
                         .font(.title)
                         .padding()
+
                 }
                 .navigationTitle("Progress")
             }

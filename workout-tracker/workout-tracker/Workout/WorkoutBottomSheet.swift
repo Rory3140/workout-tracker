@@ -6,16 +6,53 @@ struct WorkoutBottomSheet: View {
     @EnvironmentObject var userViewModel: UserViewModel
     @StateObject private var workoutViewModel = WorkoutViewModel()
     
+    @State private var showCancelAlert = false
+    @State private var showFinishAlert = false
+    @State private var showDeleteAlert = false
+    @State private var exerciseToDeleteIndex: Int?
+    
+    @FocusState var isInputActive: Bool
+    
     var body: some View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
                 .edgesIgnoringSafeArea(.all)
             
-            VStack {
+            VStack(spacing: 0) {
+                
+                // Top bar with Finish button
+                HStack {
+                    Button(action: {
+                        showCancelAlert = true
+                    }) {
+                        Text("Cancel")
+                            .foregroundColor(.red)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(6)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showFinishAlert = true
+                    }) {
+                        Text("Finish")
+                            .foregroundColor(.green)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(Color.green.opacity(0.2))
+                            .cornerRadius(6)
+                    }
+                }
+                .padding(16)
+                
                 List {
                     Section {
                         TextField("Workout Name", text: $workoutViewModel.workoutName)
                             .keyboardType(.default)
+                            .focused($isInputActive)
                         
                         DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                             .datePickerStyle(CompactDatePickerStyle())
@@ -33,12 +70,14 @@ struct WorkoutBottomSheet: View {
                         
                         TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                             .keyboardType(.default)
+                            .focused($isInputActive)
                     }
                     
                     ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
                         Section {
                             TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
                                 .keyboardType(.default)
+                                .focused($isInputActive)
                             
                             ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
                                 HStack {
@@ -48,6 +87,7 @@ struct WorkoutBottomSheet: View {
                                     
                                     TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
                                         .keyboardType(.decimalPad)
+                                        .focused($isInputActive)
                                         .frame(width: 60)
                                     
                                     Text(userViewModel.selectedWeightUnit)
@@ -55,7 +95,9 @@ struct WorkoutBottomSheet: View {
                                     
                                     TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
                                         .keyboardType(.numberPad)
+                                        .focused($isInputActive)
                                         .frame(width: 100)
+                                    
                                 }
                                 .padding(.horizontal)
                             }
@@ -82,7 +124,8 @@ struct WorkoutBottomSheet: View {
                                 
                                 Menu {
                                     Button(role: .destructive) {
-                                        workoutViewModel.exercises.remove(at: index)
+                                        exerciseToDeleteIndex = index
+                                        showDeleteAlert = true
                                     } label: {
                                         Label("Delete Exercise", systemImage: "trash")
                                     }
@@ -112,38 +155,50 @@ struct WorkoutBottomSheet: View {
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
+                    
                 }
-                .padding(.vertical)
-                
-                Button(action: {
-                    workoutViewModel.endTime = Date()
-                    workoutViewModel.saveWorkout()
-                    showWorkoutSheet = false
-                }) {
-                    Text("Finish Workout")
-                        .foregroundColor(.green)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal)
-                
-                Button(action: {
-                    showWorkoutSheet = false
-                }) {
-                    Text("Cancel Workout")
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal)
-                
+                .padding(.vertical, 0)
             }
         }
         .presentationDragIndicator(.visible)
         .presentationDetents([.large])
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isInputActive = false
+                }
+            }
+        }
+        
+        // Cancel Workout Confirmation
+        .alert("Are you sure you want to cancel the workout?", isPresented: $showCancelAlert) {
+            Button("Yes", role: .destructive) {
+                showWorkoutSheet = false
+            }
+            Button("No", role: .cancel) { }
+        }
+        
+        // Finish Workout Confirmation
+        .alert("Are you sure you want to finish?", isPresented: $showFinishAlert) {
+            Button("Yes", role: .destructive) {
+                workoutViewModel.endTime = Date()
+                workoutViewModel.saveWorkout()
+                showWorkoutSheet = false
+            }.foregroundColor(Color.blue)
+            
+            Button("No", role: .cancel) { }
+            .foregroundColor(Color.red)
+        }
+        
+        // Delete Exercise Confirmation
+        .alert("Are you sure you want to delete this exercise?", isPresented: $showDeleteAlert) {
+            Button("Yes", role: .destructive) {
+                if let index = exerciseToDeleteIndex {
+                    workoutViewModel.exercises.remove(at: index)
+                }
+            }
+            Button("No", role: .cancel) { }
+        }
     }
 }
