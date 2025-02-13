@@ -5,7 +5,7 @@ struct ProgressView: View {
     @FocusState var isInputActive: Bool
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ZStack {
                 Color(UIColor.systemGroupedBackground)
                     .edgesIgnoringSafeArea(.all)

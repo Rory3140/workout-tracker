@@ -80,12 +80,6 @@ struct WorkoutLogsView: View {
                     }
                 }
                 .navigationTitle("Workout Logs")
-                .onAppear {
-                    // Only fetch if not already loaded.
-                    if workoutViewModel.userWorkouts.isEmpty {
-                        workoutViewModel.fetchUserWorkouts()
-                    }
-                }
             }
         }
     }

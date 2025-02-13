@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorkoutBottomSheet: View {
     @Binding var showWorkoutSheet: Bool
-    @ObservedObject var workoutViewModel: WorkoutViewModel  // Received from parent
+    @ObservedObject var workoutViewModel: WorkoutViewModel
     @EnvironmentObject var userViewModel: UserViewModel
     
     @State private var showCancelAlert = false

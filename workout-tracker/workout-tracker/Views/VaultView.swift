@@ -2,7 +2,7 @@ import SwiftUI
 
 struct VaultView: View {
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ZStack {
                 Color(UIColor.systemGroupedBackground)
                     .edgesIgnoringSafeArea(.all)

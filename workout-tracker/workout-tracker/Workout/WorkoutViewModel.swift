@@ -40,6 +40,73 @@ class WorkoutViewModel: ObservableObject {
     
     private let db = Firestore.firestore()
     
+    // Listener registration property
+    private var workoutsListener: ListenerRegistration?
+    
+    init() {
+        listenForUserWorkouts()
+    }
+    
+    /// Sets up a snapshot listener on the user's document.
+    /// When the workout IDs change, re-fetch all workouts.
+    func listenForUserWorkouts() {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("Error: No authenticated user found")
+            return
+        }
+        
+        let userRef = db.collection("user-data").document(userId)
+        workoutsListener = userRef.addSnapshotListener { [weak self] document, error in
+            if let error = error {
+                print("Error listening for workouts: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = document?.data(),
+                  let workoutIds = data["workouts"] as? [String] else {
+                print("No workouts found for user.")
+                self?.userWorkouts = []
+                return
+            }
+            
+            // Clear current workouts and re-fetch them
+            self?.userWorkouts.removeAll()
+            let group = DispatchGroup()
+            
+            for workoutId in workoutIds {
+                group.enter()
+                self?.db.collection("workouts").document(workoutId).getDocument { workoutDoc, workoutError in
+                    if let workoutError = workoutError {
+                        print("Error fetching workout \(workoutId): \(workoutError.localizedDescription)")
+                        group.leave()
+                        return
+                    }
+                    
+                    if let workoutData = workoutDoc?.data() {
+                        do {
+                            let workout = try Firestore.Decoder().decode(Workout.self, from: workoutData)
+                            DispatchQueue.main.async {
+                                self?.userWorkouts.append(workout)
+                            }
+                        } catch {
+                            print("Error decoding workout \(workoutId): \(error.localizedDescription)")
+                        }
+                    }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                self?.userWorkouts.sort { $0.startTime > $1.startTime }
+                print("User workouts updated via snapshot listener")
+            }
+        }
+    }
+    
+    deinit {
+        workoutsListener?.remove()
+    }
+    
     /// Saves the workout to the global "workouts" collection and references it in the user's document
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {

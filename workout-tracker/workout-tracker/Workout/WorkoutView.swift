@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorkoutView: View {
     @State private var showWorkoutSheet = false
-    @StateObject private var workoutViewModel = WorkoutViewModel() // Shared instance
+    @StateObject private var workoutViewModel = WorkoutViewModel()
 
     var body: some View {
         NavigationStack {
@@ -29,7 +29,6 @@ struct WorkoutView: View {
                 }
                 .navigationTitle("Workout")
                 .sheet(isPresented: $showWorkoutSheet) {
-                    // Pass the shared workoutViewModel to preserve entered data
                     WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet, workoutViewModel: workoutViewModel)
                 }
             }
