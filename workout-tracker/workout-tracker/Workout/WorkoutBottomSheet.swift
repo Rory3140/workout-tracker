@@ -10,18 +10,18 @@ struct WorkoutBottomSheet: View {
     @State private var showDeleteAlert = false
     @State private var exerciseToDeleteIndex: Int?
 
-    // Define focusable fields
+    // Define focusable fields.
     enum Field: Hashable {
         case workoutName
         case workoutDescription
-        case exerciseName(Int)            // Exercise index
+        case exerciseName(Int)
         case setWeight(exercise: Int, set: Int)
         case setReps(exercise: Int, set: Int)
     }
     
-    // Currently focused field
+    // Currently focused field.
     @FocusState private var focusedField: Field?
-
+    
     // Returns an ordered list of all focusable fields.
     private func getFocusableFields() -> [Field] {
         var fields: [Field] = []
@@ -43,8 +43,7 @@ struct WorkoutBottomSheet: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                
-                // Top bar with Finish button
+                // Top bar with Cancel and Finish buttons.
                 HStack {
                     Button(action: {
                         showCancelAlert = true
@@ -72,125 +71,197 @@ struct WorkoutBottomSheet: View {
                 }
                 .padding(16)
                 
-                List {
-                    Section {
-                        TextField("Workout Name", text: $workoutViewModel.workoutName)
-                            .keyboardType(.default)
-                            .focused($focusedField, equals: .workoutName)
-                        
-                        DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(CompactDatePickerStyle())
-                        
-                        if let endTime = workoutViewModel.endTime {
-                            DatePicker("End Time", selection: Binding(
-                                get: { endTime },
-                                set: { workoutViewModel.endTime = $0 }
-                            ), displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(CompactDatePickerStyle())
-                        } else {
-                            Text("End Time: ")
-                                .foregroundColor(.gray)
-                        }
-                        
-                        TextField("Workout Description", text: $workoutViewModel.workoutDescription)
-                            .keyboardType(.default)
-                            .focused($focusedField, equals: .workoutDescription)
-                    }
-                    
-                    ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
+                ScrollViewReader { scrollProxy in
+                    List {
                         Section {
-                            TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
+                            TextField("Workout Name", text: $workoutViewModel.workoutName)
                                 .keyboardType(.default)
-                                .focused($focusedField, equals: .exerciseName(index))
+                                .focused($focusedField, equals: .workoutName)
+                                .id(Field.workoutName)
                             
-                            ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
+                            DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
+                                .datePickerStyle(CompactDatePickerStyle())
+                            
+                            if let endTime = workoutViewModel.endTime {
+                                DatePicker("End Time", selection: Binding(
+                                    get: { endTime },
+                                    set: { workoutViewModel.endTime = $0 }
+                                ), displayedComponents: [.date, .hourAndMinute])
+                                .datePickerStyle(CompactDatePickerStyle())
+                            } else {
+                                Text("End Time: ")
+                                    .foregroundColor(.gray)
+                            }
+                            
+                            TextField("Workout Description", text: $workoutViewModel.workoutDescription)
+                                .keyboardType(.default)
+                                .focused($focusedField, equals: .workoutDescription)
+                                .id(Field.workoutDescription)
+                        }
+                        
+                        ForEach(workoutViewModel.exercises.indices, id: \.self) { index in
+                            Section {
+                                TextField("Exercise Name", text: $workoutViewModel.exercises[index].name)
+                                    .keyboardType(.default)
+                                    .focused($focusedField, equals: .exerciseName(index))
+                                    .id(Field.exerciseName(index))
+                                
+                                ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
+                                    HStack {
+                                        Text("Set \(setIndex + 1)")
+                                            .font(.subheadline)
+                                            .frame(width: 60, alignment: .leading)
+                                        
+                                        TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
+                                            .keyboardType(.decimalPad)
+                                            .frame(width: 60)
+                                            .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
+                                            .id(Field.setWeight(exercise: index, set: setIndex))
+                                        
+                                        Text(userViewModel.selectedWeightUnit)
+                                            .frame(width: 60, alignment: .leading)
+                                        
+                                        TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
+                                            .keyboardType(.numberPad)
+                                            .frame(width: 100)
+                                            .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
+                                            .id(Field.setReps(exercise: index, set: setIndex))
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                .onDelete { indexSet in
+                                    workoutViewModel.exercises[index].sets.remove(atOffsets: indexSet)
+                                }
+                                
                                 HStack {
-                                    Text("Set \(setIndex + 1)")
-                                        .font(.subheadline)
-                                        .frame(width: 60, alignment: .leading)
-                                    
-                                    TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
-                                        .keyboardType(.decimalPad)
-                                        .frame(width: 60)
-                                        .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
-                                    
-                                    Text(userViewModel.selectedWeightUnit)
-                                        .frame(width: 60, alignment: .leading)
-                                    
-                                    TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
-                                        .keyboardType(.numberPad)
-                                        .frame(width: 100)
-                                        .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
-                                    
-                                }
-                                .padding(.horizontal)
-                            }
-                            .onDelete { indexSet in
-                                workoutViewModel.exercises[index].sets.remove(atOffsets: indexSet)
-                            }
-                            
-                            HStack {
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        workoutViewModel.exercises[index].sets.append(WorkoutViewModel.Set(weight: "", reps: ""))
+                                    Button(action: {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            workoutViewModel.exercises[index].sets.append(
+                                                WorkoutViewModel.Set(weight: "", reps: "")
+                                            )
+                                        }
+                                    }) {
+                                        Text("Add Set")
+                                            .foregroundColor(.blue)
+                                            .padding()
+                                            .background(Color.blue.opacity(0.1))
+                                            .cornerRadius(8)
                                     }
-                                }) {
-                                    Text("Add Set")
-                                        .foregroundColor(.blue)
-                                        .padding()
-                                        .background(Color.blue.opacity(0.1))
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.borderless)
-                                .padding(.leading, 16)
-                                
-                                Spacer()
-                                
-                                Menu {
-                                    Button(role: .destructive) {
-                                        exerciseToDeleteIndex = index
-                                        showDeleteAlert = true
+                                    .buttonStyle(.borderless)
+                                    .padding(.leading, 16)
+                                    
+                                    Spacer()
+                                    
+                                    Menu {
+                                        Button(role: .destructive) {
+                                            exerciseToDeleteIndex = index
+                                            showDeleteAlert = true
+                                        } label: {
+                                            Label("Delete Exercise", systemImage: "trash")
+                                        }
                                     } label: {
-                                        Label("Delete Exercise", systemImage: "trash")
+                                        Image(systemName: "ellipsis")
+                                            .foregroundColor(.blue)
+                                            .font(.system(size: 24))
+                                            .frame(width: 44, height: 44)
                                     }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                        .foregroundColor(.blue)
-                                        .font(.system(size: 24))
-                                        .frame(width: 44, height: 44)
+                                }
+                            }
+                            .id("exercise\(index)")
+                        }
+                        
+                        // Use the Add Exercise row as the scroll target.
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    workoutViewModel.exercises.append(
+                                        WorkoutViewModel.Exercise(
+                                            name: "",
+                                            sets: [WorkoutViewModel.Set(weight: "", reps: "")]
+                                        )
+                                    )
+                                }
+                            }) {
+                                Text("Add Exercise")
+                                    .foregroundColor(.blue)
+                                    .padding()
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                            Spacer()
+                        }
+                        .listRowBackground(Color.clear)
+                        .id("bottom")
+                    }
+                    .onChange(of: workoutViewModel.exercises.count) { newCount, oldCount in
+                        DispatchQueue.main.async {
+                            withAnimation {
+                                scrollProxy.scrollTo("bottom", anchor: .bottom)
+                            }
+                        }
+                    }
+                    .onChange(of: focusedField) { newField, oldField in
+                        guard let newField = newField else { return }
+                        
+                        // Determine which anchor to use.
+                        let anchor: UnitPoint = {
+                            switch newField {
+                            case .setWeight(_, _), .setReps(_, _):
+                                return .bottom
+                            default:
+                                return .center
+                            }
+                        }()
+                        
+                        // Identify if the new field requires a numeric keyboard.
+                        let newIsNumeric: Bool = {
+                            switch newField {
+                            case .setWeight(_, _), .setReps(_, _):
+                                return true
+                            default:
+                                return false
+                            }
+                        }()
+                        
+                        // Check if the previous field was numeric.
+                        let oldIsNumeric: Bool = {
+                            if let old = oldField {
+                                switch old {
+                                case .setWeight(_, _), .setReps(_, _):
+                                    return true
+                                default:
+                                    return false
+                                }
+                            }
+                            return false
+                        }()
+                        
+                        // If switching from a non-numeric to a numeric keyboard, delay the scroll.
+                        let delay = (newIsNumeric && !oldIsNumeric) ? 0.3 : 0.0
+                        
+                        if delay > 0 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                                withAnimation {
+                                    scrollProxy.scrollTo(newField, anchor: anchor)
+                                }
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                withAnimation {
+                                    scrollProxy.scrollTo(newField, anchor: anchor)
                                 }
                             }
                         }
                     }
-                    
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                workoutViewModel.exercises.append(
-                                    WorkoutViewModel.Exercise(name: "", sets: [WorkoutViewModel.Set(weight: "", reps: "")])
-                                )
-                            }
-                        }) {
-                            Text("Add Exercise")
-                                .foregroundColor(.blue)
-                                .padding()
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                        }
-                        Spacer()
-                    }
-                    .listRowBackground(Color.clear)
-                    
                 }
-                .padding(.vertical, 0)
             }
         }
         .presentationDragIndicator(.visible)
         .presentationDetents([.large])
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
-                // Move to previous text field
+                // Move to previous text field.
                 Button(action: {
                     let fields = getFocusableFields()
                     if let current = focusedField,
@@ -198,14 +269,14 @@ struct WorkoutBottomSheet: View {
                        currentIndex > 0 {
                         focusedField = fields[currentIndex - 1]
                     } else {
-                        // Wrap around to the last field
+                        // Wrap around to the last field.
                         focusedField = fields.last
                     }
                 }) {
                     Image(systemName: "chevron.left")
                 }
                 
-                // Move to next text field
+                // Move to next text field.
                 Button(action: {
                     let fields = getFocusableFields()
                     if let current = focusedField,
@@ -213,7 +284,7 @@ struct WorkoutBottomSheet: View {
                        currentIndex < fields.count - 1 {
                         focusedField = fields[currentIndex + 1]
                     } else {
-                        // Wrap around to the first field
+                        // Wrap around to the first field.
                         focusedField = fields.first
                     }
                 }) {
@@ -221,15 +292,14 @@ struct WorkoutBottomSheet: View {
                 }
                 Spacer()
                 Button(action: {
-                    // Dismiss the keyboard
+                    // Dismiss the keyboard.
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }) {
                     Image(systemName: "keyboard.chevron.compact.down")
                 }
             }
         }
-        
-        // Cancel Workout Confirmation
+        // Cancel Workout Confirmation.
         .alert("Are you sure you want to cancel the workout?", isPresented: $showCancelAlert) {
             Button("Yes", role: .destructive) {
                 workoutViewModel.resetWorkout()
@@ -237,8 +307,7 @@ struct WorkoutBottomSheet: View {
             }
             Button("No", role: .cancel) { }
         }
-        
-        // Finish Workout Confirmation
+        // Finish Workout Confirmation.
         .alert("Are you sure you want to finish the workout?", isPresented: $showFinishAlert) {
             Button("Yes", role: .destructive) {
                 workoutViewModel.endTime = Date()
@@ -247,15 +316,18 @@ struct WorkoutBottomSheet: View {
             }
             Button("No", role: .cancel) { }
         }
-        
-        // Delete Exercise Confirmation
+        // Delete Exercise Confirmation.
         .alert("Are you sure you want to delete this exercise?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
-                if let index = exerciseToDeleteIndex {
+                if let index = exerciseToDeleteIndex,
+                   workoutViewModel.exercises.indices.contains(index) {
                     workoutViewModel.exercises.remove(at: index)
+                    exerciseToDeleteIndex = nil
                 }
             }
-            Button("No", role: .cancel) { }
+            Button("No", role: .cancel) {
+                exerciseToDeleteIndex = nil
+            }
         }
     }
 }

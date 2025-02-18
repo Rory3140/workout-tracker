@@ -98,7 +98,6 @@ class WorkoutViewModel: ObservableObject {
             
             group.notify(queue: .main) {
                 self?.userWorkouts.sort { $0.startTime > $1.startTime }
-                print("User workouts updated via snapshot listener")
             }
         }
     }
