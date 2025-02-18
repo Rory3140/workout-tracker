@@ -7,7 +7,6 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                
                 Text("Start: \(workout.startTime.formatted(date: .abbreviated, time: .shortened))")
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -18,9 +17,11 @@ struct WorkoutDetailView: View {
                         .foregroundColor(.gray)
                 }
                 
-                Text(workout.description)
-                    .font(.body)
-                    .padding(.vertical, 5)
+                if !workout.description.isEmpty {
+                    Text(workout.description)
+                        .font(.body)
+                        .padding(.vertical, 5)
+                }
                 
                 Divider()
                 
@@ -30,17 +31,28 @@ struct WorkoutDetailView: View {
                 
                 ForEach(workout.exercises) { exercise in
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(exercise.name)
-                            .font(.headline)
+                        if !exercise.name.isEmpty {
+                            Text(exercise.name)
+                                .font(.headline)
+                        }
                         
                         ForEach(exercise.sets) { set in
                             let convertedWeight = userViewModel.convertWeightToDisplay(weight: set.weight)
                             let weightUnit = userViewModel.selectedWeightUnit
                             
-                            HStack {
-                                Text("Weight: \(convertedWeight) \(weightUnit)")
-                                Spacer()
-                                Text("Reps: \(set.reps)")
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    if !set.weight.isEmpty {
+                                        Text("Weight: \(convertedWeight) \(weightUnit)")
+                                    }
+                                    if !set.reps.isEmpty {
+                                        if !set.weight.isEmpty { Spacer() }
+                                        Text("Reps: \(set.reps)")
+                                    }
+                                }
+                                if !set.notes.isEmpty {
+                                    Text("Notes: \(set.notes)")
+                                }
                             }
                             .font(.subheadline)
                             .foregroundColor(.gray)

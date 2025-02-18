@@ -18,6 +18,7 @@ class WorkoutViewModel: ObservableObject {
         var id = UUID()
         var weight: String
         var reps: String
+        var notes: String = ""
     }
     
     struct Exercise: Identifiable, Codable {
@@ -48,7 +49,6 @@ class WorkoutViewModel: ObservableObject {
     }
     
     /// Sets up a snapshot listener on the user's document.
-    /// When the workout IDs change, re-fetch all workouts.
     func listenForUserWorkouts() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
@@ -69,7 +69,6 @@ class WorkoutViewModel: ObservableObject {
                 return
             }
             
-            // Clear current workouts and re-fetch them
             self?.userWorkouts.removeAll()
             let group = DispatchGroup()
             
@@ -106,7 +105,7 @@ class WorkoutViewModel: ObservableObject {
         workoutsListener?.remove()
     }
     
-    /// Saves the workout to the global "workouts" collection and references it in the user's document
+    /// Saves the workout to Firestore.
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
@@ -121,10 +120,8 @@ class WorkoutViewModel: ObservableObject {
         let workoutId = UUID().uuidString
         let calculatedDuration = endTime != nil ? Calendar.current.dateComponents([.minute], from: startTime, to: endTime!).minute ?? 0 : nil
         
-        // Convert weight in all exercises and sets if necessary
         for exerciseIndex in exercises.indices {
             for setIndex in exercises[exerciseIndex].sets.indices {
-                // Convert weight to kg if user selected lbs
                 if userViewModel.selectedWeightUnit == "lbs" {
                     let convertedWeight = userViewModel.convertWeightToKg(weight: exercises[exerciseIndex].sets[setIndex].weight)
                     exercises[exerciseIndex].sets[setIndex].weight = convertedWeight
@@ -145,8 +142,6 @@ class WorkoutViewModel: ObservableObject {
         
         do {
             let workoutData = try Firestore.Encoder().encode(newWorkout)
-            
-            // Save workout in the global "workouts" collection
             db.collection("workouts").document(workoutId).setData(workoutData) { error in
                 if let error = error {
                     print("Error saving workout: \(error.localizedDescription)")
@@ -160,10 +155,9 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Adds the workout ID to the user's "workouts" array
+    /// Adds the workout ID to the user's document.
     private func addWorkoutToUser(workoutId: String, userId: String) {
         let userRef = db.collection("user-data").document(userId)
-        
         userRef.updateData([
             "workouts": FieldValue.arrayUnion([workoutId])
         ]) { error in
@@ -176,7 +170,7 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Resets the workout form after saving or cancellation
+    /// Resets the workout form.
     func resetWorkout() {
         workoutName = ""
         startTime = Date()
@@ -185,7 +179,7 @@ class WorkoutViewModel: ObservableObject {
         exercises = []
     }
     
-    /// Fetches all workouts associated with the logged-in user, ordered by start date
+    /// Fetches all workouts for the logged-in user.
     func fetchUserWorkouts() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
@@ -193,7 +187,6 @@ class WorkoutViewModel: ObservableObject {
         }
         
         let userRef = db.collection("user-data").document(userId)
-        
         userRef.getDocument { document, error in
             if let error = error {
                 print("Error fetching user data: \(error.localizedDescription)")
@@ -206,8 +199,7 @@ class WorkoutViewModel: ObservableObject {
                 return
             }
             
-            self.userWorkouts.removeAll() // Clear existing workouts
-            
+            self.userWorkouts.removeAll()
             let group = DispatchGroup()
             
             for workoutId in workoutIds {
@@ -240,7 +232,7 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Deletes a workout from Firestore and removes its reference from the user's workout list
+    /// Deletes a workout from Firestore.
     func deleteWorkout(workoutId: String) {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
@@ -248,14 +240,12 @@ class WorkoutViewModel: ObservableObject {
         }
         
         DispatchQueue.main.async {
-            // Optimistically remove workout from UI before Firestore completes deletion
             self.userWorkouts.removeAll { $0.id == workoutId }
         }
         
         let workoutRef = db.collection("workouts").document(workoutId)
         let userRef = db.collection("user-data").document(userId)
         
-        // Remove the workout from the global "workouts" collection
         workoutRef.delete { error in
             if let error = error {
                 print("Error deleting workout: \(error.localizedDescription)")
@@ -263,8 +253,6 @@ class WorkoutViewModel: ObservableObject {
             }
             
             print("Workout successfully deleted")
-            
-            // Remove the workout ID from the user's "workouts" array
             userRef.updateData([
                 "workouts": FieldValue.arrayRemove([workoutId])
             ]) { error in

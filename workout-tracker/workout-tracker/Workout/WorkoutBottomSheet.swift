@@ -4,12 +4,12 @@ struct WorkoutBottomSheet: View {
     @Binding var showWorkoutSheet: Bool
     @ObservedObject var workoutViewModel: WorkoutViewModel
     @EnvironmentObject var userViewModel: UserViewModel
-
+    
     @State private var showCancelAlert = false
     @State private var showFinishAlert = false
     @State private var showDeleteAlert = false
     @State private var exerciseToDeleteIndex: Int?
-
+    
     // Define focusable fields.
     enum Field: Hashable {
         case workoutName
@@ -17,6 +17,7 @@ struct WorkoutBottomSheet: View {
         case exerciseName(Int)
         case setWeight(exercise: Int, set: Int)
         case setReps(exercise: Int, set: Int)
+        case setNotes(exercise: Int, set: Int)
     }
     
     // Currently focused field.
@@ -32,6 +33,7 @@ struct WorkoutBottomSheet: View {
             for setIndex in workoutViewModel.exercises[exerciseIndex].sets.indices {
                 fields.append(.setWeight(exercise: exerciseIndex, set: setIndex))
                 fields.append(.setReps(exercise: exerciseIndex, set: setIndex))
+                fields.append(.setNotes(exercise: exerciseIndex, set: setIndex))  // <-- added here
             }
         }
         return fields
@@ -107,27 +109,45 @@ struct WorkoutBottomSheet: View {
                                     .id(Field.exerciseName(index))
                                 
                                 ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
-                                    HStack {
-                                        Text("Set \(setIndex + 1)")
-                                            .font(.subheadline)
-                                            .frame(width: 60, alignment: .leading)
-                                        
-                                        TextField("Weight", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
-                                            .keyboardType(.decimalPad)
-                                            .frame(width: 60)
-                                            .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
-                                            .id(Field.setWeight(exercise: index, set: setIndex))
-                                        
-                                        Text(userViewModel.selectedWeightUnit)
-                                            .frame(width: 60, alignment: .leading)
-                                        
-                                        TextField("Reps", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
-                                            .keyboardType(.numberPad)
-                                            .frame(width: 100)
-                                            .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
-                                            .id(Field.setReps(exercise: index, set: setIndex))
-                                    }
-                                    .padding(.horizontal)
+                                    HStack() {
+                                            // Set number
+                                            Text("Set \(setIndex + 1)")
+                                                .font(.subheadline)
+                                                .frame(width: 40, alignment: .leading)
+                                            
+                                            // Weight unit above weight input
+                                            VStack(spacing: 2) {
+                                                Text(userViewModel.selectedWeightUnit) // e.g. "lb" or "kg"
+                                                    .font(.caption)
+                                                TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
+                                                    .keyboardType(.decimalPad)
+                                                    .frame(width: 40)
+                                                    .multilineTextAlignment(.center)
+                                                    .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
+                                                    .id(Field.setWeight(exercise: index, set: setIndex))
+                                            }
+                                            
+                                            // "Reps" label above reps input
+                                            VStack(spacing: 2) {
+                                                Text("Reps")
+                                                    .font(.caption)
+                                                TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
+                                                    .keyboardType(.numberPad)
+                                                    .frame(width: 40)
+                                                    .multilineTextAlignment(.center)
+                                                    .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
+                                                    .id(Field.setReps(exercise: index, set: setIndex))
+                                            }
+                                            
+                                            // Notes to the right
+                                            TextField("Notes", text: $workoutViewModel.exercises[index].sets[setIndex].notes)
+                                                .keyboardType(.default)
+                                                .focused($focusedField, equals: .setNotes(exercise: index, set: setIndex))
+                                                .id(Field.setNotes(exercise: index, set: setIndex))
+                                                .padding(.leading, 8)
+                                        }
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal)
                                 }
                                 .onDelete { indexSet in
                                     workoutViewModel.exercises[index].sets.remove(atOffsets: indexSet)
@@ -170,7 +190,6 @@ struct WorkoutBottomSheet: View {
                             .id("exercise\(index)")
                         }
                         
-                        // Use the Add Exercise row as the scroll target.
                         HStack {
                             Spacer()
                             Button(action: {
@@ -204,17 +223,15 @@ struct WorkoutBottomSheet: View {
                     .onChange(of: focusedField) { newField, oldField in
                         guard let newField = newField else { return }
                         
-                        // Determine which anchor to use.
                         let anchor: UnitPoint = {
                             switch newField {
-                            case .setWeight(_, _), .setReps(_, _):
+                            case .setWeight(_, _), .setReps(_, _), .setNotes(_, _):
                                 return .bottom
                             default:
                                 return .center
                             }
                         }()
                         
-                        // Identify if the new field requires a numeric keyboard.
                         let newIsNumeric: Bool = {
                             switch newField {
                             case .setWeight(_, _), .setReps(_, _):
@@ -224,7 +241,6 @@ struct WorkoutBottomSheet: View {
                             }
                         }()
                         
-                        // Check if the previous field was numeric.
                         let oldIsNumeric: Bool = {
                             if let old = oldField {
                                 switch old {
@@ -237,7 +253,6 @@ struct WorkoutBottomSheet: View {
                             return false
                         }()
                         
-                        // If switching from a non-numeric to a numeric keyboard, delay the scroll.
                         let delay = (newIsNumeric && !oldIsNumeric) ? 0.3 : 0.0
                         
                         if delay > 0 {
@@ -261,7 +276,6 @@ struct WorkoutBottomSheet: View {
         .presentationDetents([.large])
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
-                // Move to previous text field.
                 Button(action: {
                     let fields = getFocusableFields()
                     if let current = focusedField,
@@ -269,14 +283,12 @@ struct WorkoutBottomSheet: View {
                        currentIndex > 0 {
                         focusedField = fields[currentIndex - 1]
                     } else {
-                        // Wrap around to the last field.
                         focusedField = fields.last
                     }
                 }) {
                     Image(systemName: "chevron.left")
                 }
                 
-                // Move to next text field.
                 Button(action: {
                     let fields = getFocusableFields()
                     if let current = focusedField,
@@ -284,7 +296,6 @@ struct WorkoutBottomSheet: View {
                        currentIndex < fields.count - 1 {
                         focusedField = fields[currentIndex + 1]
                     } else {
-                        // Wrap around to the first field.
                         focusedField = fields.first
                     }
                 }) {
@@ -292,14 +303,12 @@ struct WorkoutBottomSheet: View {
                 }
                 Spacer()
                 Button(action: {
-                    // Dismiss the keyboard.
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }) {
                     Image(systemName: "keyboard.chevron.compact.down")
                 }
             }
         }
-        // Cancel Workout Confirmation.
         .alert("Are you sure you want to cancel the workout?", isPresented: $showCancelAlert) {
             Button("Yes", role: .destructive) {
                 workoutViewModel.resetWorkout()
@@ -307,7 +316,6 @@ struct WorkoutBottomSheet: View {
             }
             Button("No", role: .cancel) { }
         }
-        // Finish Workout Confirmation.
         .alert("Are you sure you want to finish the workout?", isPresented: $showFinishAlert) {
             Button("Yes", role: .destructive) {
                 workoutViewModel.endTime = Date()
@@ -316,7 +324,6 @@ struct WorkoutBottomSheet: View {
             }
             Button("No", role: .cancel) { }
         }
-        // Delete Exercise Confirmation.
         .alert("Are you sure you want to delete this exercise?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 if let index = exerciseToDeleteIndex,

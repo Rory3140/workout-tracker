@@ -32,12 +32,10 @@ struct ContentView: View {
                         .tag(4)
                 }
                 .sheet(isPresented: $showWorkoutSheet) {
-//                    NavigationStack {
                         WorkoutBottomSheet(showWorkoutSheet: $showWorkoutSheet,
                                            workoutViewModel: workoutViewModel)
                             .navigationTitle("Workout Details")
                             .navigationBarTitleDisplayMode(.inline)
-//                    }
                 }
             } else {
                 LoginView()
