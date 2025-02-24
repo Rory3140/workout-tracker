@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+import Network
 
 class WorkoutViewModel: ObservableObject {
     @Published var userWorkouts: [Workout] = []
@@ -11,8 +12,12 @@ class WorkoutViewModel: ObservableObject {
     @Published var workoutDescription: String = ""
     @Published var exercises: [Exercise] = []
     
-    // Add reference to UserViewModel for unit conversion
     private var userViewModel = UserViewModel()
+    private let db = Firestore.firestore()
+    private var workoutsListener: ListenerRegistration?
+    
+    private let localWorkoutsKey = "localWorkouts"
+    private let monitor = NWPathMonitor()
     
     struct Set: Identifiable, Codable {
         var id = UUID()
@@ -38,74 +43,62 @@ class WorkoutViewModel: ObservableObject {
         var createdBy: String
     }
     
-    
-    private let db = Firestore.firestore()
-    
-    // Listener registration property
-    private var workoutsListener: ListenerRegistration?
-    
     init() {
         listenForUserWorkouts()
-    }
-    
-    /// Sets up a snapshot listener on the user's document.
-    func listenForUserWorkouts() {
-        guard let userId = Auth.auth().currentUser?.uid else {
-            print("Error: No authenticated user found")
-            return
-        }
-        
-        let userRef = db.collection("user-data").document(userId)
-        workoutsListener = userRef.addSnapshotListener { [weak self] document, error in
-            if let error = error {
-                print("Error listening for workouts: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let data = document?.data(),
-                  let workoutIds = data["workouts"] as? [String] else {
-                print("No workouts found for user.")
-                self?.userWorkouts = []
-                return
-            }
-            
-            self?.userWorkouts.removeAll()
-            let group = DispatchGroup()
-            
-            for workoutId in workoutIds {
-                group.enter()
-                self?.db.collection("workouts").document(workoutId).getDocument { workoutDoc, workoutError in
-                    if let workoutError = workoutError {
-                        print("Error fetching workout \(workoutId): \(workoutError.localizedDescription)")
-                        group.leave()
-                        return
-                    }
-                    
-                    if let workoutData = workoutDoc?.data() {
-                        do {
-                            let workout = try Firestore.Decoder().decode(Workout.self, from: workoutData)
-                            DispatchQueue.main.async {
-                                self?.userWorkouts.append(workout)
-                            }
-                        } catch {
-                            print("Error decoding workout \(workoutId): \(error.localizedDescription)")
-                        }
-                    }
-                    group.leave()
-                }
-            }
-            
-            group.notify(queue: .main) {
-                self?.userWorkouts.sort { $0.startTime > $1.startTime }
-            }
-        }
+        monitorNetwork()
+        syncOfflineWorkouts()
     }
     
     deinit {
         workoutsListener?.remove()
     }
     
-    /// Saves the workout to Firestore.
+    // MARK: - Offline Sync Methods
+    
+    private func monitorNetwork() {
+        monitor.pathUpdateHandler = { path in
+            if path.status == .satisfied {
+                print("Internet connection restored")
+                self.syncOfflineWorkouts()
+            }
+        }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        monitor.start(queue: queue)
+    }
+    
+    private func saveWorkoutLocally(_ workout: Workout) {
+        var savedWorkouts = loadLocalWorkouts()
+        savedWorkouts.append(workout)
+        if let data = try? JSONEncoder().encode(savedWorkouts) {
+            UserDefaults.standard.set(data, forKey: localWorkoutsKey)
+        }
+    }
+    
+    private func loadLocalWorkouts() -> [Workout] {
+        guard let data = UserDefaults.standard.data(forKey: localWorkoutsKey),
+              let workouts = try? JSONDecoder().decode([Workout].self, from: data) else {
+            return []
+        }
+        return workouts
+    }
+    
+    private func removeLocalWorkout(_ workout: Workout) {
+        var savedWorkouts = loadLocalWorkouts()
+        savedWorkouts.removeAll { $0.id == workout.id }
+        if let data = try? JSONEncoder().encode(savedWorkouts) {
+            UserDefaults.standard.set(data, forKey: localWorkoutsKey)
+        }
+    }
+    
+    private func syncOfflineWorkouts() {
+        let unsyncedWorkouts = loadLocalWorkouts()
+        for workout in unsyncedWorkouts {
+            uploadWorkoutToFirestore(workout)
+        }
+    }
+    
+    // MARK: - Firestore Methods
+    
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
@@ -140,14 +133,20 @@ class WorkoutViewModel: ObservableObject {
             createdBy: userId
         )
         
+        saveWorkoutLocally(newWorkout)
+        uploadWorkoutToFirestore(newWorkout)
+    }
+    
+    private func uploadWorkoutToFirestore(_ workout: Workout) {
         do {
-            let workoutData = try Firestore.Encoder().encode(newWorkout)
-            db.collection("workouts").document(workoutId).setData(workoutData) { error in
+            let workoutData = try Firestore.Encoder().encode(workout)
+            db.collection("workouts").document(workout.id).setData(workoutData) { error in
                 if let error = error {
-                    print("Error saving workout: \(error.localizedDescription)")
+                    print("Error saving workout to Firestore: \(error.localizedDescription)")
                 } else {
-                    print("Workout successfully saved with ID: \(workoutId)")
-                    self.addWorkoutToUser(workoutId: workoutId, userId: userId)
+                    print("Workout successfully saved with ID: \(workout.id)")
+                    self.addWorkoutToUser(workoutId: workout.id, userId: workout.createdBy)
+                    self.removeLocalWorkout(workout)
                 }
             }
         } catch {
@@ -155,7 +154,6 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Adds the workout ID to the user's document.
     private func addWorkoutToUser(workoutId: String, userId: String) {
         let userRef = db.collection("user-data").document(userId)
         userRef.updateData([
@@ -170,41 +168,32 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    /// Resets the workout form.
-    func resetWorkout() {
-        workoutName = ""
-        startTime = Date()
-        endTime = nil
-        workoutDescription = ""
-        exercises = []
-    }
-    
-    /// Fetches all workouts for the logged-in user.
-    func fetchUserWorkouts() {
+    func listenForUserWorkouts() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
             return
         }
         
         let userRef = db.collection("user-data").document(userId)
-        userRef.getDocument { document, error in
+        workoutsListener = userRef.addSnapshotListener { [weak self] document, error in
             if let error = error {
-                print("Error fetching user data: \(error.localizedDescription)")
+                print("Error listening for workouts: \(error.localizedDescription)")
                 return
             }
             
             guard let data = document?.data(),
                   let workoutIds = data["workouts"] as? [String] else {
                 print("No workouts found for user.")
+                self?.userWorkouts = self?.loadLocalWorkouts() ?? []
                 return
             }
             
-            self.userWorkouts.removeAll()
+            self?.userWorkouts = self?.loadLocalWorkouts() ?? []
             let group = DispatchGroup()
             
             for workoutId in workoutIds {
                 group.enter()
-                self.db.collection("workouts").document(workoutId).getDocument { workoutDoc, workoutError in
+                self?.db.collection("workouts").document(workoutId).getDocument { workoutDoc, workoutError in
                     if let workoutError = workoutError {
                         print("Error fetching workout \(workoutId): \(workoutError.localizedDescription)")
                         group.leave()
@@ -215,7 +204,9 @@ class WorkoutViewModel: ObservableObject {
                         do {
                             let workout = try Firestore.Decoder().decode(Workout.self, from: workoutData)
                             DispatchQueue.main.async {
-                                self.userWorkouts.append(workout)
+                                if !(self?.userWorkouts.contains(where: { $0.id == workout.id }) ?? false) {
+                                    self?.userWorkouts.append(workout)
+                                }
                             }
                         } catch {
                             print("Error decoding workout \(workoutId): \(error.localizedDescription)")
@@ -226,21 +217,24 @@ class WorkoutViewModel: ObservableObject {
             }
             
             group.notify(queue: .main) {
-                self.userWorkouts.sort { $0.startTime > $1.startTime }
-                print("Fetched and sorted user workouts successfully")
+                self?.userWorkouts.sort { $0.startTime > $1.startTime }
             }
         }
     }
     
-    /// Deletes a workout from Firestore.
+    // MARK: - Delete Workouts (Handles Offline Support)
+    
     func deleteWorkout(workoutId: String) {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
             return
         }
         
-        DispatchQueue.main.async {
-            self.userWorkouts.removeAll { $0.id == workoutId }
+        if let localWorkout = loadLocalWorkouts().first(where: { $0.id == workoutId }) {
+            removeLocalWorkout(localWorkout)
+            userWorkouts.removeAll { $0.id == workoutId }
+            print("Workout deleted locally")
+            return
         }
         
         let workoutRef = db.collection("workouts").document(workoutId)
@@ -252,7 +246,7 @@ class WorkoutViewModel: ObservableObject {
                 return
             }
             
-            print("Workout successfully deleted")
+            print("Workout successfully deleted from Firestore")
             userRef.updateData([
                 "workouts": FieldValue.arrayRemove([workoutId])
             ]) { error in
@@ -260,8 +254,18 @@ class WorkoutViewModel: ObservableObject {
                     print("Error removing workout ID from user: \(error.localizedDescription)")
                 } else {
                     print("Workout ID successfully removed from user's workout list")
+                    self.userWorkouts.removeAll { $0.id == workoutId }
                 }
             }
         }
+    }
+    
+    // MARK: - Reset Form
+    func resetWorkout() {
+        workoutName = ""
+        startTime = Date()
+        endTime = nil
+        workoutDescription = ""
+        exercises = []
     }
 }
