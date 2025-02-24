@@ -41,7 +41,7 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    func register(email: String, password: String, firstName: String, lastName: String) {
+    func register(email: String, password: String, firstName: String, lastName: String, displayName: String) {
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error as NSError? {
                 self?.handleAuthError(error)
@@ -51,9 +51,8 @@ class AuthViewModel: ObservableObject {
             // Successful registration
             guard let user = authResult?.user else { return }
 
-            let displayName = "\(firstName) \(lastName)"
             let changeRequest = user.createProfileChangeRequest()
-            changeRequest.displayName = displayName
+            changeRequest.displayName = displayName // Use user-inputted display name
             changeRequest.commitChanges { [weak self] error in
                 if let error = error {
                     print("Failed to set displayName: \(error.localizedDescription)")
@@ -61,17 +60,18 @@ class AuthViewModel: ObservableObject {
                     return
                 }
 
-                self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName)
+                self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
             }
 
             self?.user = user
             self?.isAuthenticated = true
             print("Registration successful: \(user.email ?? "")")
-            
+
             // Add snapshot listener for user data
             self?.addUserDataListener(for: user.uid)
         }
     }
+
 
     func logout() {
         do {
@@ -92,11 +92,11 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    private func createFirestoreUserDocument(uid: String, email: String, firstName: String, lastName: String) {
+    private func createFirestoreUserDocument(uid: String, email: String, firstName: String, lastName: String, displayName: String) {
         let userData: [String: Any] = [
             "firstName": firstName,
             "lastName": lastName,
-            "displayName": "\(firstName) \(lastName)",
+            "displayName": displayName,
             "email": email,
             "photoURL": "",
             "height": "",
@@ -114,6 +114,7 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
+
 
     private func addUserDataListener(for uid: String) {
         // Remove any existing listener to prevent duplication

@@ -8,6 +8,7 @@ struct SignupView: View {
     @State private var confirmPassword: String = ""
     @State private var firstName: String = ""
     @State private var lastName: String = ""
+    @State private var displayName: String = ""
 
     var body: some View {
         NavigationView {
@@ -15,6 +16,9 @@ struct SignupView: View {
                 Section(header: Text("Create an Account")) {
                     TextField("First Name", text: $firstName)
                     TextField("Last Name", text: $lastName)
+                    TextField("Display Name", text: $displayName)
+                        .autocapitalization(.none)
+                        .textInputAutocapitalization(.never)
                     TextField("Email", text: $email)
                         .autocapitalization(.none)
                         .textInputAutocapitalization(.never)
@@ -33,7 +37,7 @@ struct SignupView: View {
                 Section {
                     Button(action: {
                         if password == confirmPassword {
-                            authViewModel.register(email: email, password: password, firstName: firstName, lastName: lastName)
+                            authViewModel.register(email: email, password: password, firstName: firstName, lastName: lastName, displayName: displayName)
                         } else {
                             authViewModel.errorMessage = "Passwords do not match."
                         }
@@ -46,7 +50,7 @@ struct SignupView: View {
                         }
                     }
                     .listRowBackground(Color.blue)
-                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || firstName.isEmpty || lastName.isEmpty)
+                    .disabled(email.isEmpty || password.isEmpty || confirmPassword.isEmpty || firstName.isEmpty || lastName.isEmpty || displayName.isEmpty)
                 }
             }
             .navigationTitle("Sign Up")
