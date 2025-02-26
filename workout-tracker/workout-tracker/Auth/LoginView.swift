@@ -4,11 +4,11 @@ struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var email: String = ""
     @State private var password: String = ""
+    @State private var showSignUp = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
-                // Login Section
                 Section(header: Text("Login Information")) {
                     TextField("Email", text: $email)
                         .autocapitalization(.none)
@@ -18,7 +18,6 @@ struct LoginView: View {
                     SecureField("Password", text: $password)
                 }
                 
-                // Action Section
                 Section {
                     Button(action: {
                         authViewModel.login(email: email, password: password)
@@ -33,18 +32,30 @@ struct LoginView: View {
                     .listRowBackground(Color.blue)
                     .disabled(email.isEmpty || password.isEmpty)
                 }
-
-                // Signup Navigation Link
+                
                 Section {
-                    NavigationLink(destination: SignupView(
-                        authViewModel: authViewModel)
-                    ) {
+                    Button(action: {
+                        showSignUp = true
+                    }) {
                         Text("Don't have an account? Sign Up")
                             .foregroundColor(.blue)
                     }
                 }
             }
             .navigationTitle("Login")
+            .navigationDestination(isPresented: $showSignUp) {
+                SignupView(
+                    authViewModel: authViewModel,
+                    onDismiss: { showSignUp = false }
+                )
+            }
         }
+    }
+}
+
+struct LoginView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoginView()
+            .environmentObject(AuthViewModel())
     }
 }

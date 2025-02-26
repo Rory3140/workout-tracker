@@ -69,13 +69,17 @@ class AuthViewModel: ObservableObject {
                     self?.errorMessage = "Failed to update profile information."
                     return
                 }
+                // Create the Firestore document and update isAuthenticated on success.
                 self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
+                // Move isAuthenticated update to here if you want to wait for the document.
+                self?.user = user
+                self?.addUserDataListener(for: user.uid)
+                DispatchQueue.main.async {
+                    self?.isAuthenticated = true
+                }
+                print("Registration successful: \(user.email ?? "")")
+                NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
             }
-            self?.user = user
-            self?.isAuthenticated = true
-            print("Registration successful: \(user.email ?? "")")
-            self?.addUserDataListener(for: user.uid)
-            NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
         }
     }
     
