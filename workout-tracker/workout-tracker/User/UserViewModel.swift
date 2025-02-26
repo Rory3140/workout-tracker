@@ -28,6 +28,11 @@ class UserViewModel: ObservableObject {
                                                selector: #selector(handleUserDataUpdated(_:)),
                                                name: .userDataUpdated,
                                                object: nil)
+        // Listen for clear profile picture notification
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(handleClearProfilePicture),
+                                               name: .clearProfilePicture,
+                                               object: nil)
     }
     
     // MARK: - Unit Conversion Methods
@@ -133,11 +138,50 @@ class UserViewModel: ObservableObject {
         db.collection("user-data").document(uid).updateData(["photoURL": photoURL])
     }
     
-    // MARK: - Notification Handler for User Data Updates
+    func profilePictureExists() -> Bool {
+        let fileManager = FileManager.default
+        if let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = documentsDirectory.appendingPathComponent("profile_picture.jpg")
+            return fileManager.fileExists(atPath: fileURL.path)
+        }
+        return false
+    }
+    
+    func fetchProfilePicture(from urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let data = data {
+                DispatchQueue.main.async {
+                    self.saveProfilePictureLocally(imageData: data)
+                }
+            }
+        }.resume()
+    }
+    
+    func clearProfilePicture() {
+        let fileManager = FileManager.default
+        if let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = documentsDirectory.appendingPathComponent("profile_picture.jpg")
+            if fileManager.fileExists(atPath: fileURL.path) {
+                try? fileManager.removeItem(at: fileURL)
+            }
+        }
+    }
+    
+    // MARK: - Notification Handlers
     @objc private func handleUserDataUpdated(_ notification: Notification) {
         if let data = notification.object as? [String: Any] {
             self.userWeight = data["weight"] as? String ?? ""
             self.userHeight = data["height"] as? String ?? ""
+            if let photoURL = data["photoURL"] as? String, !photoURL.isEmpty {
+                if !profilePictureExists() {
+                    fetchProfilePicture(from: photoURL)
+                }
+            }
         }
+    }
+    
+    @objc private func handleClearProfilePicture() {
+        clearProfilePicture()
     }
 }

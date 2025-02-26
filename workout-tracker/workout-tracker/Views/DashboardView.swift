@@ -85,7 +85,7 @@ struct DashboardView: View {
                             Spacer()
                         }
                         .padding(.horizontal)
-                        Button ("Test") {
+                        Button ("Print Local Storage") {
                             print(UserDefaults.standard.dictionaryRepresentation())
 
                         }

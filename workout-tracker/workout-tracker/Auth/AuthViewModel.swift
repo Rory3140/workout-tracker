@@ -6,6 +6,7 @@ import FirebaseFirestore
 extension Notification.Name {
     static let userDataUpdated = Notification.Name("userDataUpdated")
     static let authUserChanged = Notification.Name("authUserChanged")
+    static let clearProfilePicture = Notification.Name("clearProfilePicture")
 }
 
 class AuthViewModel: ObservableObject {
@@ -90,6 +91,8 @@ class AuthViewModel: ObservableObject {
             UserDefaults.standard.removeObject(forKey: "userData")
             // Clear cached workouts from previous account
             UserDefaults.standard.removeObject(forKey: "localWorkouts")
+            // Notify listeners to clear cached profile picture
+            NotificationCenter.default.post(name: .clearProfilePicture, object: nil)
             NotificationCenter.default.post(name: .authUserChanged, object: nil)
             print("Logout successful")
         } catch let signOutError as NSError {
@@ -121,7 +124,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // Real-time listener that updates the UI and local cache, then notifies other view models.
+    // Real-time listener that updates both the UI and local cache, then notifies other view models.
     private func addUserDataListener(for uid: String) {
         removeUserDataListener()
         listener = db.collection("user-data").document(uid).addSnapshotListener { [weak self] document, error in
