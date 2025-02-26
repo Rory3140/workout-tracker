@@ -75,6 +75,11 @@ struct SettingsView: View {
                     Text(authViewModel.userData?["displayName"] as? String ?? "Not Available")
                         .foregroundColor(.gray)
                 }
+                
+                Button ("Print Local Storage") {
+                    print(UserDefaults.standard.dictionaryRepresentation())
+
+                }
 
                 Button("Logout") {
                     authViewModel.logout()

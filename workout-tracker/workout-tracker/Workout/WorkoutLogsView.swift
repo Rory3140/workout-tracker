@@ -49,14 +49,12 @@ struct WorkoutLogsView: View {
                                         }
                                         .frame(width: 50)
                                         
-                                        // Middle Column: Workout name above creator handle
+                                        // Middle Column: Workout name above creator handle (using display name)
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(workout.name)
                                                 .font(.headline)
                                             if !workout.createdBy.isEmpty {
-                                                Text("@\(workout.createdBy)")
-                                                    .font(.footnote)
-                                                    .foregroundColor(.gray)
+                                                UserDisplayName(userViewModel: userViewModel, userId: workout.createdBy)
                                             }
                                         }
                                         .padding(.leading, 8)
@@ -90,5 +88,23 @@ struct WorkoutLogsView: View {
             let workout = workouts[index]
             workoutViewModel.deleteWorkout(workoutId: workout.id)
         }
+    }
+}
+
+// Helper view to display a user's display name based on user ID.
+struct UserDisplayName: View {
+    @ObservedObject var userViewModel: UserViewModel
+    let userId: String
+    @State private var displayName: String = ""
+    
+    var body: some View {
+        Text("@" + (displayName.isEmpty ? userId : displayName))
+            .font(.footnote)
+            .foregroundColor(.gray)
+            .onAppear {
+                userViewModel.getDisplayName(for: userId) { name in
+                    displayName = name
+                }
+            }
     }
 }

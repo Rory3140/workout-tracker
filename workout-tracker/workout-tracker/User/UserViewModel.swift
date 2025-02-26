@@ -13,6 +13,8 @@ class UserViewModel: ObservableObject {
     @Published var selectedHeightUnit: String
     @Published var userWeight: String = ""
     @Published var userHeight: String = ""
+    // New property to cache user display names.
+    @Published var userDisplayNameCache: [String: String] = [:]
     
     // MARK: - Initialization
     init() {
@@ -164,6 +166,26 @@ class UserViewModel: ObservableObject {
             let fileURL = documentsDirectory.appendingPathComponent("profile_picture.jpg")
             if fileManager.fileExists(atPath: fileURL.path) {
                 try? fileManager.removeItem(at: fileURL)
+            }
+        }
+    }
+    
+    // MARK: - Display Name Fetching
+    // Retrieves the display name for a given user ID and caches it.
+    // If no display name is found, the userId is returned.
+    func getDisplayName(for userId: String, completion: @escaping (String) -> Void) {
+        if let cached = userDisplayNameCache[userId] {
+            completion(cached)
+            return
+        }
+        db.collection("user-data").document(userId).getDocument { [weak self] snapshot, error in
+            if let data = snapshot?.data(), let displayName = data["displayName"] as? String {
+                DispatchQueue.main.async {
+                    self?.userDisplayNameCache[userId] = displayName
+                }
+                completion(displayName)
+            } else {
+                completion(userId)
             }
         }
     }
