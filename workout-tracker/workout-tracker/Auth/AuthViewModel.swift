@@ -38,10 +38,10 @@ class AuthViewModel: ObservableObject {
     // MARK: - Authentication Methods
     func login(email: String, password: String) {
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
-            if let error = error {
-                self?.errorMessage = error.localizedDescription
+            if let error = error as NSError? {
+                self?.handleAuthError(error)
                 self?.isAuthenticated = false
-                print("Login failed: \(error.localizedDescription)")
+                print("Login failed: \(self?.errorMessage ?? "Unknown error")")
                 return
             }
             guard let user = authResult?.user else { return }
@@ -49,7 +49,6 @@ class AuthViewModel: ObservableObject {
             self?.isAuthenticated = true
             print("Login successful: \(user.email ?? "")")
             self?.addUserDataListener(for: user.uid)
-            // Notify that the authenticated user has changed
             NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
         }
     }
@@ -69,9 +68,7 @@ class AuthViewModel: ObservableObject {
                     self?.errorMessage = "Failed to update profile information."
                     return
                 }
-                // Create the Firestore document and update isAuthenticated on success.
                 self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
-                // Move isAuthenticated update to here if you want to wait for the document.
                 self?.user = user
                 self?.addUserDataListener(for: user.uid)
                 DispatchQueue.main.async {
@@ -86,16 +83,13 @@ class AuthViewModel: ObservableObject {
     func logout() {
         do {
             try Auth.auth().signOut()
-            // Clear in-memory data and local cache
             self.user = nil
             self.isAuthenticated = false
             self.userData = nil
             self.errorMessage = nil
             removeUserDataListener()
             UserDefaults.standard.removeObject(forKey: "userData")
-            // Clear cached workouts from previous account
             UserDefaults.standard.removeObject(forKey: "localWorkouts")
-            // Notify listeners to clear cached profile picture
             NotificationCenter.default.post(name: .clearProfilePicture, object: nil)
             NotificationCenter.default.post(name: .authUserChanged, object: nil)
             print("Logout successful")
@@ -128,7 +122,6 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // Real-time listener that updates both the UI and local cache, then notifies other view models.
     private func addUserDataListener(for uid: String) {
         removeUserDataListener()
         listener = db.collection("user-data").document(uid).addSnapshotListener { [weak self] document, error in
@@ -157,18 +150,20 @@ class AuthViewModel: ObservableObject {
     // MARK: - Error Handling
     private func handleAuthError(_ error: NSError) {
         switch error.code {
-        case AuthErrorCode.internalError.rawValue:
-            self.errorMessage = "Incorrect email or password."
         case AuthErrorCode.invalidEmail.rawValue:
-            self.errorMessage = "Invalid email address."
-        case AuthErrorCode.emailAlreadyInUse.rawValue:
-            self.errorMessage = "Email address is already in use."
-        case AuthErrorCode.weakPassword.rawValue:
-            self.errorMessage = "Password should be at least 6 characters."
+            self.errorMessage = "The email address is invalid. Please check and try again."
+        case AuthErrorCode.userNotFound.rawValue:
+            self.errorMessage = "No account found with this email. Please sign up or check your email."
         case AuthErrorCode.wrongPassword.rawValue:
-            self.errorMessage = "Incorrect password."
+            self.errorMessage = "The password is incorrect. Please try again."
+        case AuthErrorCode.weakPassword.rawValue:
+            self.errorMessage = "The password is too weak. It should be at least 6 characters."
+        case AuthErrorCode.emailAlreadyInUse.rawValue:
+            self.errorMessage = "This email address is already registered. Please log in instead."
+        case AuthErrorCode.invalidCredential.rawValue:
+            self.errorMessage = "The provided credentials are invalid. Please try again."
         default:
-            self.errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
+            self.errorMessage = "An unexpected error occurred. Please try again later."
         }
         print("Authentication error: \(self.errorMessage ?? "Unknown error")")
     }

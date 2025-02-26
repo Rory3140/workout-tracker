@@ -18,6 +18,14 @@ struct LoginView: View {
                     SecureField("Password", text: $password)
                 }
                 
+                // Display login error message if available.
+                if let errorMessage = authViewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                    }
+                }
+                
                 Section {
                     Button(action: {
                         authViewModel.login(email: email, password: password)
@@ -50,12 +58,5 @@ struct LoginView: View {
                 )
             }
         }
-    }
-}
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView()
-            .environmentObject(AuthViewModel())
     }
 }
