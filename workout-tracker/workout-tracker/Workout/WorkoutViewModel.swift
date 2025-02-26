@@ -4,21 +4,22 @@ import FirebaseAuth
 import Network
 
 class WorkoutViewModel: ObservableObject {
+    // MARK: - Published Properties
     @Published var userWorkouts: [Workout] = []
-    
     @Published var workoutName: String = ""
     @Published var startTime: Date = Date()
     @Published var endTime: Date? = nil
     @Published var workoutDescription: String = ""
     @Published var exercises: [Exercise] = []
     
+    // MARK: - Private Properties
     private var userViewModel = UserViewModel()
     private let db = Firestore.firestore()
     private var workoutsListener: ListenerRegistration?
-    
-    private let localWorkoutsKey = "localWorkouts"
+    let localWorkoutsKey = "localWorkouts"
     private let monitor = NWPathMonitor()
     
+    // MARK: - Model Structures
     struct Set: Identifiable, Codable {
         var id = UUID()
         var weight: String
@@ -43,7 +44,18 @@ class WorkoutViewModel: ObservableObject {
         var createdBy: String
     }
     
+    // MARK: - Initialization
     init() {
+        // Clear previous cached workouts on initialization for a fresh account
+        UserDefaults.standard.removeObject(forKey: localWorkoutsKey)
+        userWorkouts = []
+        
+        // Listen for auth user changes to refresh workouts immediately
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(authUserChanged(_:)),
+                                               name: .authUserChanged,
+                                               object: nil)
+        
         listenForUserWorkouts()
         monitorNetwork()
         syncOfflineWorkouts()
@@ -53,12 +65,24 @@ class WorkoutViewModel: ObservableObject {
         workoutsListener?.remove()
     }
     
-    // MARK: - Offline Sync Methods
+    // MARK: - Auth Change Handler
+    @objc private func authUserChanged(_ notification: Notification) {
+        // Clear the in-memory workouts when the authenticated user changes.
+        DispatchQueue.main.async {
+            self.userWorkouts = []
+        }
+        workoutsListener?.remove()
+        workoutsListener = nil
+        // If a new user id is provided, start a new listener.
+        if let userId = notification.object as? String, !userId.isEmpty {
+            listenForUserWorkouts()
+        }
+    }
     
+    // MARK: - Network Monitoring & Offline Sync
     private func monitorNetwork() {
         monitor.pathUpdateHandler = { path in
             if path.status == .satisfied {
-                print("Internet connection restored")
                 self.syncOfflineWorkouts()
             }
         }
@@ -68,7 +92,11 @@ class WorkoutViewModel: ObservableObject {
     
     private func saveWorkoutLocally(_ workout: Workout) {
         var savedWorkouts = loadLocalWorkouts()
-        savedWorkouts.append(workout)
+        if let index = savedWorkouts.firstIndex(where: { $0.id == workout.id }) {
+            savedWorkouts[index] = workout
+        } else {
+            savedWorkouts.append(workout)
+        }
         if let data = try? JSONEncoder().encode(savedWorkouts) {
             UserDefaults.standard.set(data, forKey: localWorkoutsKey)
         }
@@ -90,6 +118,7 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
+    // Try to push any locally saved workouts that haven't been synced yet.
     private func syncOfflineWorkouts() {
         let unsyncedWorkouts = loadLocalWorkouts()
         for workout in unsyncedWorkouts {
@@ -98,21 +127,19 @@ class WorkoutViewModel: ObservableObject {
     }
     
     // MARK: - Firestore Methods
-    
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
             return
         }
-        
         guard !workoutName.isEmpty else {
             print("Workout name cannot be empty")
             return
         }
-        
         let workoutId = UUID().uuidString
         let calculatedDuration = endTime != nil ? Calendar.current.dateComponents([.minute], from: startTime, to: endTime!).minute ?? 0 : nil
         
+        // Update weights if necessary
         for exerciseIndex in exercises.indices {
             for setIndex in exercises[exerciseIndex].sets.indices {
                 if userViewModel.selectedWeightUnit == "lbs" {
@@ -133,7 +160,10 @@ class WorkoutViewModel: ObservableObject {
             createdBy: userId
         )
         
+        // Immediately update local cache and in-memory list.
         saveWorkoutLocally(newWorkout)
+        userWorkouts.append(newWorkout)
+        // Attempt to sync with Firestore.
         uploadWorkoutToFirestore(newWorkout)
     }
     
@@ -173,14 +203,12 @@ class WorkoutViewModel: ObservableObject {
             print("Error: No authenticated user found")
             return
         }
-        
         let userRef = db.collection("user-data").document(userId)
         workoutsListener = userRef.addSnapshotListener { [weak self] document, error in
             if let error = error {
                 print("Error listening for workouts: \(error.localizedDescription)")
                 return
             }
-            
             guard let data = document?.data(),
                   let workoutIds = data["workouts"] as? [String] else {
                 print("No workouts found for user.")
@@ -188,7 +216,7 @@ class WorkoutViewModel: ObservableObject {
                 return
             }
             
-            self?.userWorkouts = self?.loadLocalWorkouts() ?? []
+            var updatedWorkouts = self?.loadLocalWorkouts() ?? []
             let group = DispatchGroup()
             
             for workoutId in workoutIds {
@@ -199,14 +227,11 @@ class WorkoutViewModel: ObservableObject {
                         group.leave()
                         return
                     }
-                    
                     if let workoutData = workoutDoc?.data() {
                         do {
                             let workout = try Firestore.Decoder().decode(Workout.self, from: workoutData)
-                            DispatchQueue.main.async {
-                                if !(self?.userWorkouts.contains(where: { $0.id == workout.id }) ?? false) {
-                                    self?.userWorkouts.append(workout)
-                                }
+                            if !updatedWorkouts.contains(where: { $0.id == workout.id }) {
+                                updatedWorkouts.append(workout)
                             }
                         } catch {
                             print("Error decoding workout \(workoutId): \(error.localizedDescription)")
@@ -217,26 +242,24 @@ class WorkoutViewModel: ObservableObject {
             }
             
             group.notify(queue: .main) {
-                self?.userWorkouts.sort { $0.startTime > $1.startTime }
+                self?.userWorkouts = updatedWorkouts.sorted { $0.startTime > $1.startTime }
             }
         }
     }
     
-    // MARK: - Delete Workouts (Handles Offline Support)
-    
+    // MARK: - Delete Workouts
     func deleteWorkout(workoutId: String) {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
             return
         }
-        
+        // Remove from local cache and in-memory list first
         if let localWorkout = loadLocalWorkouts().first(where: { $0.id == workoutId }) {
             removeLocalWorkout(localWorkout)
             userWorkouts.removeAll { $0.id == workoutId }
             print("Workout deleted locally")
-            return
         }
-        
+        // Then delete from Firestore
         let workoutRef = db.collection("workouts").document(workoutId)
         let userRef = db.collection("user-data").document(userId)
         
@@ -245,7 +268,6 @@ class WorkoutViewModel: ObservableObject {
                 print("Error deleting workout: \(error.localizedDescription)")
                 return
             }
-            
             print("Workout successfully deleted from Firestore")
             userRef.updateData([
                 "workouts": FieldValue.arrayRemove([workoutId])
@@ -260,7 +282,7 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Reset Form
+    // MARK: - Reset Workout Form
     func resetWorkout() {
         workoutName = ""
         startTime = Date()

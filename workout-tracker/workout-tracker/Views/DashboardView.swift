@@ -19,8 +19,15 @@ struct DashboardView: View {
                         HStack {
                             // Profile Image Picker
                             PhotosPicker(selection: $selectedItem, matching: .images) {
+                                // MARK: - Cached Profile Picture Logic
                                 if let image = selectedImage {
                                     image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(Circle())
+                                } else if let cachedImage = userViewModel.loadProfilePictureLocally() {
+                                    Image(uiImage: cachedImage)
                                         .resizable()
                                         .scaledToFill()
                                         .frame(width: 80, height: 80)
@@ -78,7 +85,10 @@ struct DashboardView: View {
                             Spacer()
                         }
                         .padding(.horizontal)
-                        
+                        Button ("Test") {
+                            print(UserDefaults.standard.dictionaryRepresentation())
+
+                        }
                     }
                     .padding()
                     .navigationTitle("Dashboard")

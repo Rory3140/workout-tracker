@@ -12,6 +12,7 @@ struct WorkoutView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 20) {
+                    Spacer()
                     Button(action: {
                         showWorkoutSheet.toggle()
                     }) {                        Text((workoutViewModel.workoutName.isEmpty &&
@@ -25,6 +26,7 @@ struct WorkoutView: View {
                             .stroke(Color.blue, lineWidth: 2)
                     )
                     }
+                    .padding(.bottom, 20)
                 }
                 .navigationTitle("Workout")
             }

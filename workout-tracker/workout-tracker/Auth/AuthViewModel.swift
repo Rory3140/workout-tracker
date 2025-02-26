@@ -2,25 +2,39 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 
+// MARK: - Notification Extensions
+extension Notification.Name {
+    static let userDataUpdated = Notification.Name("userDataUpdated")
+    static let authUserChanged = Notification.Name("authUserChanged")
+}
+
 class AuthViewModel: ObservableObject {
+    // MARK: - Published Properties
     @Published var isAuthenticated: Bool = false
     @Published var user: User? = nil
     @Published var userData: [String: Any]? = nil
     @Published var errorMessage: String? = nil
 
-    private var listener: ListenerRegistration? // Firestore snapshot listener
+    // MARK: - Private Properties
+    private var listener: ListenerRegistration?
     private let db = Firestore.firestore()
-
+    
+    // MARK: - Initialization
     init() {
         self.user = Auth.auth().currentUser
         self.isAuthenticated = user != nil
-
-        // Set up listener if the user is already logged in
+        
+        // Optionally load cached user data
+        if let cachedData = UserDefaults.standard.dictionary(forKey: "userData") {
+            self.userData = cachedData
+        }
+        
         if let user = user {
             addUserDataListener(for: user.uid)
         }
     }
-
+    
+    // MARK: - Authentication Methods
     func login(email: String, password: String) {
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error {
@@ -29,71 +43,64 @@ class AuthViewModel: ObservableObject {
                 print("Login failed: \(error.localizedDescription)")
                 return
             }
-
-            // Successful login
             guard let user = authResult?.user else { return }
             self?.user = user
             self?.isAuthenticated = true
             print("Login successful: \(user.email ?? "")")
-
-            // Add snapshot listener for user data
             self?.addUserDataListener(for: user.uid)
+            // Notify that the authenticated user has changed
+            NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
         }
     }
-
+    
     func register(email: String, password: String, firstName: String, lastName: String, displayName: String) {
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error as NSError? {
                 self?.handleAuthError(error)
                 return
             }
-
-            // Successful registration
             guard let user = authResult?.user else { return }
-
             let changeRequest = user.createProfileChangeRequest()
-            changeRequest.displayName = displayName // Use user-inputted display name
+            changeRequest.displayName = displayName
             changeRequest.commitChanges { [weak self] error in
                 if let error = error {
                     print("Failed to set displayName: \(error.localizedDescription)")
                     self?.errorMessage = "Failed to update profile information."
                     return
                 }
-
                 self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
             }
-
             self?.user = user
             self?.isAuthenticated = true
             print("Registration successful: \(user.email ?? "")")
-
-            // Add snapshot listener for user data
             self?.addUserDataListener(for: user.uid)
+            NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
         }
     }
-
-
+    
     func logout() {
         do {
             try Auth.auth().signOut()
-
-            // Clean up user session
+            // Clear in-memory data and local cache
             self.user = nil
             self.isAuthenticated = false
             self.userData = nil
             self.errorMessage = nil
-
-            // Remove Firestore listener
             removeUserDataListener()
+            UserDefaults.standard.removeObject(forKey: "userData")
+            // Clear cached workouts from previous account
+            UserDefaults.standard.removeObject(forKey: "localWorkouts")
+            NotificationCenter.default.post(name: .authUserChanged, object: nil)
             print("Logout successful")
         } catch let signOutError as NSError {
             self.errorMessage = signOutError.localizedDescription
             print("Logout failed: \(signOutError.localizedDescription)")
         }
     }
-
+    
+    // MARK: - Firestore Data Sync
     private func createFirestoreUserDocument(uid: String, email: String, firstName: String, lastName: String, displayName: String) {
-        let userData: [String: Any] = [
+        let data: [String: Any] = [
             "firstName": firstName,
             "lastName": lastName,
             "displayName": displayName,
@@ -104,8 +111,7 @@ class AuthViewModel: ObservableObject {
             "workouts": [],
             "routines": []
         ]
-        
-        db.collection("user-data").document(uid).setData(userData) { [weak self] error in
+        db.collection("user-data").document(uid).setData(data) { [weak self] error in
             if let error = error {
                 print("Failed to create user document: \(error.localizedDescription)")
                 self?.errorMessage = "Failed to save user data."
@@ -114,35 +120,34 @@ class AuthViewModel: ObservableObject {
             }
         }
     }
-
-
+    
+    // Real-time listener that updates the UI and local cache, then notifies other view models.
     private func addUserDataListener(for uid: String) {
-        // Remove any existing listener to prevent duplication
         removeUserDataListener()
-
         listener = db.collection("user-data").document(uid).addSnapshotListener { [weak self] document, error in
             if let error = error {
                 print("Error fetching user data: \(error.localizedDescription)")
                 self?.errorMessage = "Failed to fetch user data."
                 return
             }
-
             guard let document = document, document.exists, let data = document.data() else {
                 print("User document does not exist")
                 self?.userData = nil
                 self?.errorMessage = "User data not found."
                 return
             }
-
             self?.userData = data
+            UserDefaults.standard.set(data, forKey: "userData")
+            NotificationCenter.default.post(name: .userDataUpdated, object: data)
         }
     }
-
+    
     private func removeUserDataListener() {
         listener?.remove()
         listener = nil
     }
-
+    
+    // MARK: - Error Handling
     private func handleAuthError(_ error: NSError) {
         switch error.code {
         case AuthErrorCode.internalError.rawValue:
