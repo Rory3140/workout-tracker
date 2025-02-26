@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var email: String = ""
+    @State private var email: String = ""   // Accepts email or display name.
     @State private var password: String = ""
     @State private var showSignUp = false
 
@@ -10,7 +10,7 @@ struct LoginView: View {
         NavigationStack {
             List {
                 Section(header: Text("Login Information")) {
-                    TextField("Email", text: $email)
+                    TextField("Email or Display Name", text: $email)
                         .autocapitalization(.none)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
@@ -18,7 +18,6 @@ struct LoginView: View {
                     SecureField("Password", text: $password)
                 }
                 
-                // Display login error message if available.
                 if let errorMessage = authViewModel.errorMessage {
                     Section {
                         Text(errorMessage)
@@ -28,7 +27,7 @@ struct LoginView: View {
                 
                 Section {
                     Button(action: {
-                        authViewModel.login(email: email, password: password)
+                        authViewModel.login(credential: email, password: password)
                     }) {
                         HStack {
                             Spacer()
@@ -58,5 +57,12 @@ struct LoginView: View {
                 )
             }
         }
+    }
+}
+
+struct LoginView_Previews: PreviewProvider {
+    static var previews: some View {
+        LoginView()
+            .environmentObject(AuthViewModel())
     }
 }

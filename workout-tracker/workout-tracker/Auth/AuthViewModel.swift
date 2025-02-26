@@ -36,48 +36,108 @@ class AuthViewModel: ObservableObject {
     }
     
     // MARK: - Authentication Methods
-    func login(email: String, password: String) {
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
-            if let error = error as NSError? {
-                self?.handleAuthError(error)
-                self?.isAuthenticated = false
-                print("Login failed: \(self?.errorMessage ?? "Unknown error")")
-                return
+
+    /// Log in using either an email or display name (if no "@" is found).
+    func login(credential: String, password: String) {
+        if credential.contains("@") {
+            // Credential appears to be an email.
+            Auth.auth().signIn(withEmail: credential, password: password) { [weak self] authResult, error in
+                if let error = error as NSError? {
+                    self?.handleAuthError(error)
+                    self?.isAuthenticated = false
+                    print("Login failed: \(self?.errorMessage ?? "Unknown error")")
+                    return
+                }
+                guard let user = authResult?.user else { return }
+                self?.user = user
+                self?.isAuthenticated = true
+                print("Login successful: \(user.email ?? "")")
+                self?.addUserDataListener(for: user.uid)
+                NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
             }
-            guard let user = authResult?.user else { return }
-            self?.user = user
-            self?.isAuthenticated = true
-            print("Login successful: \(user.email ?? "")")
-            self?.addUserDataListener(for: user.uid)
-            NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
+        } else {
+            // Credential is treated as a display name. Query using the lowercased version.
+            let lowerCredential = credential.lowercased()
+            db.collection("user-data")
+                .whereField("displayName_lowercased", isEqualTo: lowerCredential)
+                .getDocuments { [weak self] snapshot, error in
+                    if let error = error as NSError? {
+                        self?.errorMessage = "Error searching for display name: \(error.localizedDescription)"
+                        self?.isAuthenticated = false
+                        print("Login failed: \(self?.errorMessage ?? "Unknown error")")
+                        return
+                    }
+                    guard let documents = snapshot?.documents, let document = documents.first else {
+                        self?.errorMessage = "No account found with that display name."
+                        self?.isAuthenticated = false
+                        return
+                    }
+                    let data = document.data()
+                    guard let email = data["email"] as? String else {
+                        self?.errorMessage = "No email found for this display name."
+                        self?.isAuthenticated = false
+                        return
+                    }
+                    // Now sign in using the retrieved email.
+                    Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
+                        if let error = error as NSError? {
+                            self?.handleAuthError(error)
+                            self?.isAuthenticated = false
+                            print("Login failed: \(self?.errorMessage ?? "Unknown error")")
+                            return
+                        }
+                        guard let user = authResult?.user else { return }
+                        self?.user = user
+                        self?.isAuthenticated = true
+                        print("Login successful: \(user.email ?? "")")
+                        self?.addUserDataListener(for: user.uid)
+                        NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
+                    }
+                }
         }
     }
     
+    /// Registers a new user after verifying that the chosen display name is unique (case-insensitive).
     func register(email: String, password: String, firstName: String, lastName: String, displayName: String) {
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
-            if let error = error as NSError? {
-                self?.handleAuthError(error)
-                return
-            }
-            guard let user = authResult?.user else { return }
-            let changeRequest = user.createProfileChangeRequest()
-            changeRequest.displayName = displayName
-            changeRequest.commitChanges { [weak self] error in
-                if let error = error {
-                    print("Failed to set displayName: \(error.localizedDescription)")
-                    self?.errorMessage = "Failed to update profile information."
+        let lowerDisplayName = displayName.lowercased()
+        // Check if the display name is unique.
+        db.collection("user-data")
+            .whereField("displayName_lowercased", isEqualTo: lowerDisplayName)
+            .getDocuments { [weak self] snapshot, error in
+                if let error = error as NSError? {
+                    self?.errorMessage = "Error checking display name uniqueness: \(error.localizedDescription)"
                     return
                 }
-                self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
-                self?.user = user
-                self?.addUserDataListener(for: user.uid)
-                DispatchQueue.main.async {
-                    self?.isAuthenticated = true
+                if let documents = snapshot?.documents, !documents.isEmpty {
+                    self?.errorMessage = "Display name already in use. Please choose another one."
+                    return
                 }
-                print("Registration successful: \(user.email ?? "")")
-                NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
+                // Proceed with registration if display name is unique.
+                Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
+                    if let error = error as NSError? {
+                        self?.handleAuthError(error)
+                        return
+                    }
+                    guard let user = authResult?.user else { return }
+                    let changeRequest = user.createProfileChangeRequest()
+                    changeRequest.displayName = displayName
+                    changeRequest.commitChanges { [weak self] error in
+                        if let error = error {
+                            print("Failed to set displayName: \(error.localizedDescription)")
+                            self?.errorMessage = "Failed to update profile information."
+                            return
+                        }
+                        self?.createFirestoreUserDocument(uid: user.uid, email: email, firstName: firstName, lastName: lastName, displayName: displayName)
+                        self?.user = user
+                        self?.addUserDataListener(for: user.uid)
+                        DispatchQueue.main.async {
+                            self?.isAuthenticated = true
+                        }
+                        print("Registration successful: \(user.email ?? "")")
+                        NotificationCenter.default.post(name: .authUserChanged, object: user.uid)
+                    }
+                }
             }
-        }
     }
     
     func logout() {
@@ -101,10 +161,12 @@ class AuthViewModel: ObservableObject {
     
     // MARK: - Firestore Data Sync
     private func createFirestoreUserDocument(uid: String, email: String, firstName: String, lastName: String, displayName: String) {
+        // Store both the original and lowercased display name.
         let data: [String: Any] = [
             "firstName": firstName,
             "lastName": lastName,
             "displayName": displayName,
+            "displayName_lowercased": displayName.lowercased(),
             "email": email,
             "photoURL": "",
             "height": "",
