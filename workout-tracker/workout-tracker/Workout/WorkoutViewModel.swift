@@ -130,10 +130,12 @@ class WorkoutViewModel: ObservableObject {
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("Error: No authenticated user found")
+            resetWorkout()
             return
         }
         guard !workoutName.isEmpty else {
             print("Workout name cannot be empty")
+            resetWorkout()
             return
         }
         let workoutId = UUID().uuidString
@@ -165,6 +167,9 @@ class WorkoutViewModel: ObservableObject {
         userWorkouts.append(newWorkout)
         // Attempt to sync with Firestore.
         uploadWorkoutToFirestore(newWorkout)
+        
+        // Reset Workout
+        resetWorkout()
     }
     
     private func uploadWorkoutToFirestore(_ workout: Workout) {
@@ -285,9 +290,10 @@ class WorkoutViewModel: ObservableObject {
     // MARK: - Reset Workout Form
     func resetWorkout() {
         workoutName = ""
-        startTime = Date()
+        if userWorkouts.isEmpty {
+            startTime = Date()
+        }
         endTime = nil
         workoutDescription = ""
         exercises = []
-    }
-}
+    }}

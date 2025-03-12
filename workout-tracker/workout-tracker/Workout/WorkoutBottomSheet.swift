@@ -272,6 +272,12 @@ struct WorkoutBottomSheet: View {
                 }
             }
         }
+        .onAppear {
+            // Ensure start time is only set when a new workout begins
+            if workoutViewModel.workoutName.isEmpty && workoutViewModel.exercises.isEmpty {
+                workoutViewModel.startTime = Date()
+            }
+        }
         .presentationDragIndicator(.visible)
         .presentationDetents([.large])
         .toolbar {
