@@ -33,7 +33,7 @@ struct WorkoutBottomSheet: View {
             for setIndex in workoutViewModel.exercises[exerciseIndex].sets.indices {
                 fields.append(.setWeight(exercise: exerciseIndex, set: setIndex))
                 fields.append(.setReps(exercise: exerciseIndex, set: setIndex))
-                fields.append(.setNotes(exercise: exerciseIndex, set: setIndex))  // <-- added here
+                fields.append(.setNotes(exercise: exerciseIndex, set: setIndex))
             }
         }
         return fields
@@ -109,45 +109,45 @@ struct WorkoutBottomSheet: View {
                                     .id(Field.exerciseName(index))
                                 
                                 ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
-                                    HStack() {
-                                            // Set number
-                                            Text("Set \(setIndex + 1)")
-                                                .font(.subheadline)
-                                                .frame(width: 40, alignment: .leading)
-                                            
-                                            // Weight unit above weight input
-                                            VStack(spacing: 2) {
-                                                Text(userViewModel.selectedWeightUnit) // e.g. "lb" or "kg"
-                                                    .font(.caption)
-                                                TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
-                                                    .keyboardType(.decimalPad)
-                                                    .frame(width: 40)
-                                                    .multilineTextAlignment(.center)
-                                                    .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
-                                                    .id(Field.setWeight(exercise: index, set: setIndex))
-                                            }
-                                            
-                                            // "Reps" label above reps input
-                                            VStack(spacing: 2) {
-                                                Text("Reps")
-                                                    .font(.caption)
-                                                TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
-                                                    .keyboardType(.numberPad)
-                                                    .frame(width: 40)
-                                                    .multilineTextAlignment(.center)
-                                                    .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
-                                                    .id(Field.setReps(exercise: index, set: setIndex))
-                                            }
-                                            
-                                            // Notes to the right
-                                            TextField("Notes", text: $workoutViewModel.exercises[index].sets[setIndex].notes)
-                                                .keyboardType(.default)
-                                                .focused($focusedField, equals: .setNotes(exercise: index, set: setIndex))
-                                                .id(Field.setNotes(exercise: index, set: setIndex))
-                                                .padding(.leading, 8)
+                                    HStack {
+                                        // Set number
+                                        Text("Set \(setIndex + 1)")
+                                            .font(.subheadline)
+                                            .frame(width: 40, alignment: .leading)
+                                        
+                                        // Weight unit above weight input (uses exercise's unit)
+                                        VStack(spacing: 2) {
+                                            Text(workoutViewModel.exercises[index].weightUnit)
+                                                .font(.caption)
+                                            TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].weight)
+                                                .keyboardType(.decimalPad)
+                                                .frame(width: 40)
+                                                .multilineTextAlignment(.center)
+                                                .focused($focusedField, equals: .setWeight(exercise: index, set: setIndex))
+                                                .id(Field.setWeight(exercise: index, set: setIndex))
                                         }
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal)
+                                        
+                                        // "Reps" label above reps input
+                                        VStack(spacing: 2) {
+                                            Text("Reps")
+                                                .font(.caption)
+                                            TextField("0", text: $workoutViewModel.exercises[index].sets[setIndex].reps)
+                                                .keyboardType(.numberPad)
+                                                .frame(width: 40)
+                                                .multilineTextAlignment(.center)
+                                                .focused($focusedField, equals: .setReps(exercise: index, set: setIndex))
+                                                .id(Field.setReps(exercise: index, set: setIndex))
+                                        }
+                                        
+                                        // Notes to the right
+                                        TextField("Notes", text: $workoutViewModel.exercises[index].sets[setIndex].notes)
+                                            .keyboardType(.default)
+                                            .focused($focusedField, equals: .setNotes(exercise: index, set: setIndex))
+                                            .id(Field.setNotes(exercise: index, set: setIndex))
+                                            .padding(.leading, 8)
+                                    }
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal)
                                 }
                                 .onDelete { indexSet in
                                     workoutViewModel.exercises[index].sets.remove(atOffsets: indexSet)
@@ -179,6 +179,14 @@ struct WorkoutBottomSheet: View {
                                         } label: {
                                             Label("Delete Exercise", systemImage: "trash")
                                         }
+                                        
+                                        Button {
+                                            let currentUnit = workoutViewModel.exercises[index].weightUnit
+                                            let newUnit = currentUnit == "kg" ? "lbs" : "kg"
+                                            workoutViewModel.exercises[index].weightUnit = newUnit
+                                        } label: {
+                                            Label("Switch to \(workoutViewModel.exercises[index].weightUnit == "kg" ? "lbs" : "kg")", systemImage: "arrow.2.circlepath")
+                                        }
                                     } label: {
                                         Image(systemName: "ellipsis")
                                             .foregroundColor(.blue)
@@ -194,10 +202,12 @@ struct WorkoutBottomSheet: View {
                             Spacer()
                             Button(action: {
                                 withAnimation(.spring()) {
+                                    // New exercise will use the user's selected weight unit by default.
                                     workoutViewModel.exercises.append(
                                         WorkoutViewModel.Exercise(
                                             name: "",
-                                            sets: [WorkoutViewModel.Set(weight: "", reps: "")]
+                                            sets: [WorkoutViewModel.Set(weight: "", reps: "")],
+                                            weightUnit: userViewModel.selectedWeightUnit
                                         )
                                     )
                                 }
@@ -273,7 +283,7 @@ struct WorkoutBottomSheet: View {
             }
         }
         .onAppear {
-            // Ensure start time is only set when a new workout begins
+            // Ensure start time is only set when a new workout begins.
             if workoutViewModel.workoutName.isEmpty && workoutViewModel.exercises.isEmpty {
                 workoutViewModel.startTime = Date()
             }
