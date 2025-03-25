@@ -3,7 +3,9 @@ import SwiftUI
 struct WorkoutDetailView: View {
     let workout: WorkoutViewModel.Workout
     @ObservedObject var userViewModel: UserViewModel
-    
+    @ObservedObject var workoutViewModel: WorkoutViewModel
+    @State private var showEditSheet = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
@@ -37,13 +39,11 @@ struct WorkoutDetailView: View {
                         }
                         
                         ForEach(exercise.sets) { set in
-                            let convertedWeight = userViewModel.convertWeightToDisplay(weight: set.weight)
-                            let weightUnit = userViewModel.selectedWeightUnit
-                            
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     if !set.weight.isEmpty {
-                                        Text("Weight: \(convertedWeight) \(weightUnit)")
+                                        // Use the exercise's weightUnit property here.
+                                        Text("Weight: \(userViewModel.convertWeightToDisplay(weight: set.weight)) \(exercise.weightUnit)")
                                     }
                                     if !set.reps.isEmpty {
                                         if !set.weight.isEmpty { Spacer() }
@@ -64,5 +64,17 @@ struct WorkoutDetailView: View {
             .padding()
         }
         .navigationTitle(workout.name)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") {
+                    showEditSheet.toggle()
+                }
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditWorkoutView(originalWorkout: workout)
+                .environmentObject(userViewModel)
+                .environmentObject(workoutViewModel)
+        }
     }
 }
