@@ -29,7 +29,7 @@ struct WorkoutView: View {
                             .foregroundColor(.blue)
                     }
                     .padding()
-                    .background(Color.white.opacity(0.8))
+                    .background(Color(UIColor.secondarySystemBackground).opacity(0.8))
                     .cornerRadius(15)
                     .shadow(radius: 5)
                     

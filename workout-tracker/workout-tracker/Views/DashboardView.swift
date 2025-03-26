@@ -12,14 +12,15 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                // A dynamic background that works well in both light and dark mode.
                 Color(UIColor.systemGroupedBackground)
                     .edgesIgnoringSafeArea(.all)
                 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Profile Card
+                        // Profile Card with a dynamic background.
                         HStack {
-                            // Profile Image Picker
+                            // Profile Image Picker.
                             PhotosPicker(selection: $selectedItem, matching: .images) {
                                 if let image = selectedImage {
                                     image
@@ -90,12 +91,13 @@ struct DashboardView: View {
                             Spacer()
                         }
                         .padding()
-                        .background(Color.white)
+                        // Use a dynamic color that adjusts for dark mode.
+                        .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(15)
                         .shadow(radius: 5)
                         .padding(.horizontal)
                         
-                        // You can add more dashboard content here if needed.
+                        // Additional dashboard content can be placed here.
                         
                         Spacer()
                     }
