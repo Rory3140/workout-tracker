@@ -4,7 +4,7 @@ struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
     @StateObject private var workoutViewModel = WorkoutViewModel()
-    @State private var selectedTab = 0
+    @State private var selectedTab = 2
     @State private var showWorkoutSheet = false
     
     var body: some View {
@@ -12,7 +12,7 @@ struct ContentView: View {
             if authViewModel.isAuthenticated {
                 TabView(selection: $selectedTab) {
                     DashboardView()
-                        .tabItem { Image(systemName: "house.fill") }
+                        .tabItem { Image(systemName: "person.fill") }
                         .tag(0)
                     
                     WorkoutLogsView()
@@ -20,7 +20,7 @@ struct ContentView: View {
                         .tag(1)
                     
                     WorkoutView(showWorkoutSheet: $showWorkoutSheet, workoutViewModel: workoutViewModel)
-                        .tabItem { Image(systemName: "figure.run") }
+                        .tabItem { Image(systemName: "dumbbell.fill") }
                         .tag(2)
                     
                     ProgressView()

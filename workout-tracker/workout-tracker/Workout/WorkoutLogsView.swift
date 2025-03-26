@@ -45,6 +45,7 @@ struct WorkoutLogsView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
                 .navigationTitle("Workout Logs")
             }
         }

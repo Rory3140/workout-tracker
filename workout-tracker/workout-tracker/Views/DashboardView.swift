@@ -12,10 +12,7 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // A soft gradient background for a modern look.
-                LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.2), Color.purple.opacity(0.2)]),
-                               startPoint: .topLeading,
-                               endPoint: .bottomTrailing)
+                Color(UIColor.systemGroupedBackground)
                     .edgesIgnoringSafeArea(.all)
                 
                 ScrollView {
