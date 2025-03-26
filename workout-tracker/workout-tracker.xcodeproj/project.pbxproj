@@ -411,7 +411,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"workout-tracker/Preview Content\"";
-				DEVELOPMENT_TEAM = RLY8W9NBZ9;
+				DEVELOPMENT_TEAM = FSZM7LQ9P8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -441,7 +441,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"workout-tracker/Preview Content\"";
-				DEVELOPMENT_TEAM = RLY8W9NBZ9;
+				DEVELOPMENT_TEAM = FSZM7LQ9P8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
