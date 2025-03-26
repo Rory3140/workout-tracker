@@ -81,14 +81,16 @@ struct WorkoutDetailView: View {
                                                 Text("Weight: \(userViewModel.convertWeightToDisplay(weight: set.weight)) \(exercise.weightUnit)")
                                                     .font(.subheadline)
                                             }
+                                            
+                                            Spacer()
+                                            
                                             if !set.reps.isEmpty {
-                                                Spacer()
                                                 Text("Reps: \(set.reps)")
                                                     .font(.subheadline)
                                             }
                                         }
                                         if !set.notes.isEmpty {
-                                            Text("Notes: \(set.notes)")
+                                            Text((set.notes))
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
