@@ -12,14 +12,18 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                // A soft gradient background for a modern look.
+                LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.2), Color.purple.opacity(0.2)]),
+                               startPoint: .topLeading,
+                               endPoint: .bottomTrailing)
                     .edgesIgnoringSafeArea(.all)
+                
                 ScrollView {
                     VStack(spacing: 20) {
+                        // Profile Card
                         HStack {
                             // Profile Image Picker
                             PhotosPicker(selection: $selectedItem, matching: .images) {
-                                // MARK: - Cached Profile Picture Logic
                                 if let image = selectedImage {
                                     image
                                         .resizable()
@@ -57,7 +61,7 @@ struct DashboardView: View {
                                         selectedImage = Image(uiImage: uiImage)
                                         selectedImageData = data
                                         
-                                        // Upload image to backend
+                                        // Upload image to backend.
                                         if let uid = authViewModel.user?.uid {
                                             userViewModel.uploadProfilePicture(uid: uid, imageData: data) { success in
                                                 print(success ? "Profile picture updated successfully" : "Upload failed")
@@ -69,31 +73,43 @@ struct DashboardView: View {
                                 }
                             }
                             
-                            VStack(alignment: .leading) {
+                            // User Information.
+                            VStack(alignment: .leading, spacing: 4) {
                                 if let firstName = authViewModel.userData?["firstName"] as? String,
                                    let lastName = authViewModel.userData?["lastName"] as? String {
                                     Text("\(firstName) \(lastName)")
-                                        .font(.headline)
-                                    
-                                    if let displayName = authViewModel.userData?["displayName"] as? String {
-                                        Text("@\(displayName)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                    }
+                                        .font(.title2)
+                                        .bold()
+                                        .foregroundColor(.primary)
+                                }
+                                if let displayName = authViewModel.userData?["displayName"] as? String {
+                                    Text("@\(displayName)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
                                 }
                             }
+                            .padding(.leading, 10)
+                            
                             Spacer()
                         }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(15)
+                        .shadow(radius: 5)
                         .padding(.horizontal)
+                        
+                        // You can add more dashboard content here if needed.
+                        
+                        Spacer()
                     }
-                    .padding()
-                    .navigationTitle("Dashboard")
-                    .navigationBarItems(trailing: NavigationLink(destination: SettingsView(authViewModel: authViewModel, userViewModel: userViewModel)) {
-                        Image(systemName: "gearshape")
-                            .imageScale(.large)
-                    })
+                    .padding(.top, 20)
                 }
             }
+            .navigationTitle("Dashboard")
+            .navigationBarItems(trailing: NavigationLink(destination: SettingsView(authViewModel: authViewModel, userViewModel: userViewModel)) {
+                Image(systemName: "gearshape")
+                    .imageScale(.large)
+            })
         }
     }
     
