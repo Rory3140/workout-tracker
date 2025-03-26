@@ -92,6 +92,8 @@ struct DashboardView: View {
                         }
                         .padding()
                         // Use a dynamic color that adjusts for dark mode.
+                        //I want to change things here as I dont want the pill around the information
+                        //I also think this is where Ill center the info
                         .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(15)
                         .shadow(radius: 5)
@@ -104,10 +106,17 @@ struct DashboardView: View {
                     .padding(.top, 20)
                 }
             }
-            .navigationTitle("Dashboard")
+//            .navigationTitle("Dashboard")
+            .navigationBarItems(leading: NavigationLink(destination: SettingsView(authViewModel: authViewModel, userViewModel: userViewModel)) {
+                Text("LiftSync")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(Color("OrangeAccent"))
+            })
             .navigationBarItems(trailing: NavigationLink(destination: SettingsView(authViewModel: authViewModel, userViewModel: userViewModel)) {
                 Image(systemName: "gearshape")
                     .imageScale(.large)
+                    .foregroundColor(Color("OrangeAccent"))
             })
         }
     }
