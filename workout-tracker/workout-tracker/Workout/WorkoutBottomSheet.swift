@@ -6,9 +6,9 @@ struct WorkoutBottomSheet: View {
     @EnvironmentObject var userViewModel: UserViewModel
     
     @State private var showCancelAlert = false
-    @State private var showFinishAlert = false
     @State private var showDeleteAlert = false
     @State private var exerciseToDeleteIndex: Int?
+    @State private var showSummaryView = false  // New state for summary presentation
     
     // Define focusable fields.
     enum Field: Hashable {
@@ -61,7 +61,12 @@ struct WorkoutBottomSheet: View {
                     Spacer()
                     
                     Button(action: {
-                        showFinishAlert = true
+                        // If no title was provided, generate a default workout name so it shows in the summary.
+                        if workoutViewModel.workoutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            workoutViewModel.workoutName = workoutViewModel.defaultWorkoutName(from: workoutViewModel.startTime)
+                        }
+                        // Instead of showing an alert, present the summary view.
+                        showSummaryView = true
                     }) {
                         Text("Finish")
                             .foregroundColor(.green)
@@ -84,17 +89,6 @@ struct WorkoutBottomSheet: View {
                             DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                                 .datePickerStyle(CompactDatePickerStyle())
                             
-//                            if let endTime = workoutViewModel.endTime {
-//                                DatePicker("End Time", selection: Binding(
-//                                    get: { endTime },
-//                                    set: { workoutViewModel.endTime = $0 }
-//                                ), displayedComponents: [.date, .hourAndMinute])
-//                                .datePickerStyle(CompactDatePickerStyle())
-//                            } else {
-//                                Text("End Time: ")
-//                                    .foregroundColor(.gray)
-//                            }
-                            
                             TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                                 .keyboardType(.default)
                                 .focused($focusedField, equals: .workoutDescription)
@@ -110,12 +104,10 @@ struct WorkoutBottomSheet: View {
                                 
                                 ForEach(workoutViewModel.exercises[index].sets.indices, id: \.self) { setIndex in
                                     HStack {
-                                        // Set number
                                         Text("Set \(setIndex + 1)")
                                             .font(.subheadline)
                                             .frame(width: 40, alignment: .leading)
                                         
-                                        // Weight unit above weight input (uses exercise's unit)
                                         VStack(spacing: 2) {
                                             Text(workoutViewModel.exercises[index].weightUnit)
                                                 .font(.caption)
@@ -127,7 +119,6 @@ struct WorkoutBottomSheet: View {
                                                 .id(Field.setWeight(exercise: index, set: setIndex))
                                         }
                                         
-                                        // "Reps" label above reps input
                                         VStack(spacing: 2) {
                                             Text("Reps")
                                                 .font(.caption)
@@ -139,7 +130,6 @@ struct WorkoutBottomSheet: View {
                                                 .id(Field.setReps(exercise: index, set: setIndex))
                                         }
                                         
-                                        // Notes to the right
                                         TextField("Notes", text: $workoutViewModel.exercises[index].sets[setIndex].notes)
                                             .keyboardType(.default)
                                             .focused($focusedField, equals: .setNotes(exercise: index, set: setIndex))
@@ -202,7 +192,6 @@ struct WorkoutBottomSheet: View {
                             Spacer()
                             Button(action: {
                                 withAnimation(.spring()) {
-                                    // New exercise will use the user's selected weight unit by default.
                                     workoutViewModel.exercises.append(
                                         WorkoutViewModel.Exercise(
                                             name: "",
@@ -283,7 +272,6 @@ struct WorkoutBottomSheet: View {
             }
         }
         .onAppear {
-            // Ensure start time is only set when a new workout begins.
             if workoutViewModel.workoutName.isEmpty && workoutViewModel.exercises.isEmpty {
                 workoutViewModel.startTime = Date()
             }
@@ -332,14 +320,6 @@ struct WorkoutBottomSheet: View {
             }
             Button("No", role: .cancel) { }
         }
-        .alert("Are you sure you want to finish the workout?", isPresented: $showFinishAlert) {
-            Button("Yes", role: .destructive) {
-                workoutViewModel.endTime = Date()
-                workoutViewModel.saveWorkout()
-                showWorkoutSheet = false
-            }
-            Button("No", role: .cancel) { }
-        }
         .alert("Are you sure you want to delete this exercise?", isPresented: $showDeleteAlert) {
             Button("Yes", role: .destructive) {
                 if let index = exerciseToDeleteIndex,
@@ -351,6 +331,19 @@ struct WorkoutBottomSheet: View {
             Button("No", role: .cancel) {
                 exerciseToDeleteIndex = nil
             }
+        }
+        // Present the Workout Summary view when finishing.
+        .sheet(isPresented: $showSummaryView) {
+            WorkoutSummaryView(showSummary: $showSummaryView, onContinue: {
+                workoutViewModel.endTime = Date()
+                workoutViewModel.saveWorkout()
+                showWorkoutSheet = false
+            }, onReturn: {
+                // Return to workout editing.
+                showSummaryView = false
+            })
+            .environmentObject(userViewModel)
+            .environmentObject(workoutViewModel)
         }
     }
 }

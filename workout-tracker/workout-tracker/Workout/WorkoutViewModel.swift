@@ -125,6 +125,26 @@ class WorkoutViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Default Workout Name
+    /// Generates a default workout name based on the workout's start time.
+    func defaultWorkoutName(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE" // e.g., "Tuesday"
+        let weekday = formatter.string(from: date)
+        
+        let hour = Calendar.current.component(.hour, from: date)
+        let timeOfDay: String
+        if hour < 12 {
+            timeOfDay = "Morning"
+        } else if hour < 17 {
+            timeOfDay = "Afternoon"
+        } else {
+            timeOfDay = "Night"
+        }
+        
+        return "\(weekday) \(timeOfDay) Workout"
+    }
+    
     // MARK: - Firestore Methods
     func saveWorkout() {
         guard let userId = Auth.auth().currentUser?.uid else {
@@ -132,11 +152,12 @@ class WorkoutViewModel: ObservableObject {
             resetWorkout()
             return
         }
-        guard !workoutName.isEmpty else {
-            print("Workout name cannot be empty")
-            resetWorkout()
-            return
+        
+        // If no workout title is provided, assign a default name.
+        if workoutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            workoutName = defaultWorkoutName(from: startTime)
         }
+        
         let workoutId = UUID().uuidString
         let calculatedDuration = endTime != nil ? Calendar.current.dateComponents([.minute], from: startTime, to: endTime!).minute ?? 0 : nil
         
