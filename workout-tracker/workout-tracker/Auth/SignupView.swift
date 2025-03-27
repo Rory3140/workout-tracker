@@ -10,9 +10,8 @@ struct SignupView: View {
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var displayName: String = ""
-
+    
     // Helper function to validate display names.
-    // Allowed characters: letters, numbers, underscores, dots, and dashes.
     private func isValidDisplayName(_ name: String) -> Bool {
         let regex = "^[A-Za-z0-9_.-]+$"
         let predicate = NSPredicate(format: "SELF MATCHES %@", regex)
@@ -20,68 +19,110 @@ struct SignupView: View {
     }
 
     var body: some View {
-        List {
-            Section(header: Text("Create an Account")) {
-                TextField("First Name", text: $firstName)
-                TextField("Last Name", text: $lastName)
-                TextField("Display Name", text: $displayName)
-                    .autocapitalization(.none)
-                    .textInputAutocapitalization(.never)
-                TextField("Email", text: $email)
-                    .autocapitalization(.none)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                SecureField("Password", text: $password)
-                SecureField("Confirm Password", text: $confirmPassword)
-            }
-            
-            if let errorMessage = authViewModel.errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                }
-            }
-            
-            Section {
-                Button(action: {
-                    // Validate that the display name contains only allowed characters.
-                    if !isValidDisplayName(displayName) {
-                        authViewModel.errorMessage = "Display name can only contain letters, numbers, underscores, dots, and dashes."
-                        return
+        ZStack {
+            // Background gradient.
+            LinearGradient(gradient: Gradient(colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)]),
+                           startPoint: .topLeading,
+                           endPoint: .bottomTrailing)
+                .edgesIgnoringSafeArea(.all)
+
+            VStack(spacing: 20) {
+                // Signup card.
+                VStack(spacing: 15) {
+                    Text("Create an Account")
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.primary)
+                    
+                    TextField("First Name", text: $firstName)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                    
+                    TextField("Last Name", text: $lastName)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                    
+                    TextField("Display Name", text: $displayName)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                        .autocapitalization(.none)
+                        .textInputAutocapitalization(.never)
+                    
+                    TextField("Email", text: $email)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                        .autocapitalization(.none)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                    
+                    SecureField("Password", text: $password)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                    
+                    SecureField("Confirm Password", text: $confirmPassword)
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                    
+                    if let errorMessage = authViewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
                     }
                     
-                    if password == confirmPassword {
-                        authViewModel.register(
-                            email: email,
-                            password: password,
-                            firstName: firstName,
-                            lastName: lastName,
-                            displayName: displayName
-                        )
-                    } else {
-                        authViewModel.errorMessage = "Passwords do not match."
-                    }
-                }) {
-                    HStack {
-                        Spacer()
+                    Button(action: {
+                        if !isValidDisplayName(displayName) {
+                            authViewModel.errorMessage = "Display name can only contain letters, numbers, underscores, dots, and dashes."
+                            return
+                        }
+                        
+                        if password == confirmPassword {
+                            authViewModel.register(
+                                email: email,
+                                password: password,
+                                firstName: firstName,
+                                lastName: lastName,
+                                displayName: displayName
+                            )
+                        } else {
+                            authViewModel.errorMessage = "Passwords do not match."
+                        }
+                    }) {
                         Text("Sign Up")
+                            .font(.headline)
                             .foregroundColor(.white)
-                        Spacer()
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
                     }
+                    .disabled(email.isEmpty ||
+                              password.isEmpty ||
+                              confirmPassword.isEmpty ||
+                              firstName.isEmpty ||
+                              lastName.isEmpty ||
+                              displayName.isEmpty)
                 }
-                .listRowBackground(Color.blue)
-                .disabled(email.isEmpty ||
-                          password.isEmpty ||
-                          confirmPassword.isEmpty ||
-                          firstName.isEmpty ||
-                          lastName.isEmpty ||
-                          displayName.isEmpty)
+                .padding()
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(15)
+                .shadow(radius: 5)
+                .padding(.horizontal, 20)
+                
+                Spacer()
             }
-        }
-        .navigationTitle("Sign Up")
-        .onReceive(authViewModel.$isAuthenticated) { newValue in
-            if newValue {
-                onDismiss?()
+            .padding(.top, 50)
+            .navigationTitle("Sign Up")
+            .onReceive(authViewModel.$isAuthenticated) { newValue in
+                if newValue {
+                    onDismiss?()
+                }
             }
         }
     }

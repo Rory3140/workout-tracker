@@ -84,16 +84,16 @@ struct WorkoutBottomSheet: View {
                             DatePicker("Start Time", selection: $workoutViewModel.startTime, displayedComponents: [.date, .hourAndMinute])
                                 .datePickerStyle(CompactDatePickerStyle())
                             
-                            if let endTime = workoutViewModel.endTime {
-                                DatePicker("End Time", selection: Binding(
-                                    get: { endTime },
-                                    set: { workoutViewModel.endTime = $0 }
-                                ), displayedComponents: [.date, .hourAndMinute])
-                                .datePickerStyle(CompactDatePickerStyle())
-                            } else {
-                                Text("End Time: ")
-                                    .foregroundColor(.gray)
-                            }
+//                            if let endTime = workoutViewModel.endTime {
+//                                DatePicker("End Time", selection: Binding(
+//                                    get: { endTime },
+//                                    set: { workoutViewModel.endTime = $0 }
+//                                ), displayedComponents: [.date, .hourAndMinute])
+//                                .datePickerStyle(CompactDatePickerStyle())
+//                            } else {
+//                                Text("End Time: ")
+//                                    .foregroundColor(.gray)
+//                            }
                             
                             TextField("Workout Description", text: $workoutViewModel.workoutDescription)
                                 .keyboardType(.default)
