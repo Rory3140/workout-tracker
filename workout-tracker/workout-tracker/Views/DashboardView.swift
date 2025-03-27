@@ -13,7 +13,7 @@ struct DashboardView: View {
         NavigationView {
             ZStack {
                 // A dynamic background that works well in both light and dark mode.
-                Color(UIColor.systemGroupedBackground)
+                Color("BGMain")
                     .edgesIgnoringSafeArea(.all)
                 
                 ScrollView {
@@ -21,6 +21,7 @@ struct DashboardView: View {
                         // Profile Card with a dynamic background.
                         HStack {
                             // Profile Image Picker.
+                            Spacer()
                             PhotosPicker(selection: $selectedItem, matching: .images) {
                                 if let image = selectedImage {
                                     image
@@ -90,23 +91,57 @@ struct DashboardView: View {
                             
                             Spacer()
                         }
-                        .padding()
+                        .padding(.top)
                         // Use a dynamic color that adjusts for dark mode.
                         //I want to change things here as I dont want the pill around the information
                         //I also think this is where Ill center the info
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(15)
-                        .shadow(radius: 5)
-                        .padding(.horizontal)
+                        //                        .background(Color(UIColor.secondarySystemBackground))
+                        //                        .cornerRadius(15)
+                        //                        .shadow(radius: 5)
+                        //.padding(.horizontal)
                         
                         // Additional dashboard content can be placed here.
+                        HStack {
+                            Text("87KG")
+                                .font(.title3)
+                                .bold()
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 5) {
+                                Text("25")
+                                    .font(.title3)
+                                    .bold()
+                                Image(systemName: "flame.fill")
+                                    .foregroundColor(Color("OrangeAccent"))
+                            }
+                        }
+                        .padding(.horizontal, 90)
                         
+                        
+                        // Goals Card
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Goals")
+                                    .font(.headline)
+                                Spacer()
+                                Text("90KG") // Target Weight?
+                                    .fontWeight(.bold)
+                            }
+                            Text("Bench 100KG for 2 reps by 01/03")
+                            Text("Current: 95KG")
+                            Text("Days left: 56")
+                        }
+                        .padding()
+                        .background(Color("GreyTab"))
+                        .cornerRadius(15)
+                        .shadow(radius: 3)
+                        .padding(.horizontal)
                         Spacer()
                     }
                     .padding(.top, 20)
                 }
             }
-//            .navigationTitle("Dashboard")
             .navigationBarItems(leading: NavigationLink(destination: SettingsView(authViewModel: authViewModel, userViewModel: userViewModel)) {
                 Text("LiftSync")
                     .font(.largeTitle)
