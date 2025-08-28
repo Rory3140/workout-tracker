@@ -1,7 +1,7 @@
 # Workout App
 
 
-Welcome to our Un-named Workout App repository. This project is a fitness-focused application designed to help users track their workouts, set goals, and stay motivated to achieve their fitness milestones. Built with modern tools and technologies, this app aims to provide a seamless and engaging user experience.
+Welcome to our second Un-named Workout App repository(we had to nuke the first one and copy over). This project is a fitness-focused application designed to help users track their workouts, set goals, and stay motivated to achieve their fitness milestones. Built with modern tools and technologies, this app aims to provide a seamless and engaging user experience.
 
 ## Table of Contents
 
