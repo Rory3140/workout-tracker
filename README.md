@@ -36,10 +36,6 @@ Follow the instructions below to set up the project locally.
 - Xcode installed on your Mac
 - (Future Tools and SKDs)
 
-### Installation
-
-Ill do this at some stage 
-
 ## License
 
 Lmao no license
